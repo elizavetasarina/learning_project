@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/*
+ * Telegram SDK инжектирует CSS-переменные вида --tg-theme-bg-color и т.д.
+ * Привязываемся к ним, чтобы Mini App автоматически подстраивался под тему.
+ * var(--tg-..., fallback) — fallback сработает при открытии вне Telegram.
+ */
+:root {
+  --background: var(--tg-theme-bg-color, #ffffff);
+  --foreground: var(--tg-theme-text-color, #171717);
+  --hint: var(--tg-theme-hint-color, #999999);
+  --button-bg: var(--tg-theme-button-color, #3b82f6);
+  --button-text: var(--tg-theme-button-text-color, #ffffff);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-hint: var(--hint);
+  --color-button-bg: var(--button-bg);
+  --color-button-text: var(--button-text);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
