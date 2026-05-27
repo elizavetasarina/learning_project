@@ -1,27 +1,58 @@
 @import "tailwindcss";
 
 /*
- * Telegram SDK инжектирует CSS-переменные вида --tg-theme-bg-color и т.д.
- * Привязываемся к ним, чтобы Mini App автоматически подстраивался под тему.
- * var(--tg-..., fallback) — fallback сработает при открытии вне Telegram.
+ * === ЦВЕТА ===
+ * Базовые — из Telegram-темы (адаптируются под светлую/тёмную тему пользователя).
+ * Акцентные — свои (индиго), дают приложению собственный характер.
  */
 :root {
+  /* Telegram-тема: фон, текст, подсказки, вторичный фон */
   --background: var(--tg-theme-bg-color, #ffffff);
   --foreground: var(--tg-theme-text-color, #171717);
   --hint: var(--tg-theme-hint-color, #999999);
-  --button-bg: var(--tg-theme-button-color, #3b82f6);
-  --button-text: var(--tg-theme-button-text-color, #ffffff);
+  --secondary-bg: var(--tg-theme-secondary-bg-color, #f4f4f5);
+
+  /* Акцент — индиго из Design_System.md */
+  --accent: #6366f1;
+  --accent-light: #818cf8;
+  --accent-text: #ffffff;
+
+  /* Семантические цвета */
+  --success: #10b981;
+  --error: #ef4444;
+  --warning: #f59e0b;
+
+  /* Бордеры и разделители */
+  --border: var(--tg-theme-hint-color, #e4e4e7);
 }
 
+/*
+ * === TAILWIND THEME ===
+ * Регистрируем переменные как Tailwind-цвета,
+ * чтобы использовать: bg-accent, text-hint, border-border и т.д.
+ */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-hint: var(--hint);
-  --color-button-bg: var(--button-bg);
-  --color-button-text: var(--button-text);
+  --color-secondary-bg: var(--secondary-bg);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-accent-text: var(--accent-text);
+  --color-success: var(--success);
+  --color-error: var(--error);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
 }
 
+/*
+ * === БАЗОВЫЕ СТИЛИ ===
+ */
 body {
   background: var(--background);
   color: var(--foreground);
+  /* Системный шрифт — как в Design_System.md */
+  font-family: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
 }

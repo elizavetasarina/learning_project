@@ -27,3 +27,7 @@
 - Функциональные компоненты, hooks
 - Именованные экспорты, не default (кроме страниц Next.js)
 - Типы — отдельно, не inline в больших компонентах
+
+## Дизайн
+Перед любой работой с UI читай и применяй skill frontend-design 
+(/mnt/skills/public/frontend-design/SKILL.md).
