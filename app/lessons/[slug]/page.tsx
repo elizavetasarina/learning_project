@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, HelpCircle, ArrowRight } from "lucide-react";
 import { getLesson, getQuestions } from "@/lib/lessons";
 import { LessonContent } from "./lesson-content";
-import { Quiz } from "./quiz";
 import Link from "next/link";
 
 interface LessonPageProps {
@@ -21,7 +20,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
 
   return (
     <main className="flex flex-col gap-6 px-4 py-6">
-      {/* Навигация назад */}
+      {/* Навигация */}
       <Link
         href="/lessons"
         className="flex items-center gap-1 text-sm text-hint transition-opacity active:opacity-70"
@@ -30,21 +29,50 @@ export default async function LessonPage({ params }: LessonPageProps) {
         К урокам
       </Link>
 
-      {/* Заголовок урока */}
-      <h1 className="text-[22px] font-semibold leading-tight">
-        {lesson.title}
-      </h1>
+      {/* Шапка урока */}
+      <div>
+        <p className="text-xs text-hint">Урок {lesson.order}</p>
+        <h1 className="mt-1 text-[22px] font-bold leading-tight">
+          {lesson.title}
+        </h1>
+        <p className="mt-2 text-[14px] leading-relaxed text-hint">
+          {lesson.description}
+        </p>
+      </div>
 
-      {/* Теория: markdown → HTML */}
+      {/* Разделитель */}
+      <hr className="border-border/20" />
+
+      {/* Теория */}
       <LessonContent content={lesson.content} />
 
-      {/* Разделитель и тест */}
+      {/* CTA: перейти к тесту */}
       {questions.length > 0 && (
-        <>
-          <hr className="border-border/20" />
-          <Quiz questions={questions} />
-        </>
+        <Link
+          href={`/lessons/${slug}/quiz`}
+          className="flex items-center gap-4 rounded-2xl bg-accent p-5 text-accent-text transition-all active:scale-[0.98]"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
+            <HelpCircle size={22} />
+          </div>
+          <div className="flex-1">
+            <p className="font-semibold">Проверь себя</p>
+            <p className="text-[13px] opacity-80">
+              {questions.length} {getQuestionsWord(questions.length)} по теме
+            </p>
+          </div>
+          <ArrowRight size={20} />
+        </Link>
       )}
     </main>
   );
+}
+
+function getQuestionsWord(n: number): string {
+  const abs = Math.abs(n) % 100;
+  const lastDigit = abs % 10;
+  if (abs >= 11 && abs <= 19) return "вопросов";
+  if (lastDigit === 1) return "вопрос";
+  if (lastDigit >= 2 && lastDigit <= 4) return "вопроса";
+  return "вопросов";
 }
