@@ -16,25 +16,32 @@ export const dynamic = "force-dynamic";
  * Ответ: { progress: [{ lessonSlug, status, bestScore, attemptsCount }] }
  */
 export async function GET(request: Request) {
-  // Аутентификация — первая строка любого API-роута
-  const auth = await authenticateRequest(request);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  try {
+    const auth = await authenticateRequest(request);
+    if (!auth.ok) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
+
+    const progress = await prisma.lessonProgress.findMany({
+      where: { userId: auth.user.id },
+      select: {
+        lessonSlug: true,
+        status: true,
+        bestScore: true,
+        attemptsCount: true,
+        startedAt: true,
+        completedAt: true,
+      },
+    });
+
+    return NextResponse.json({ progress });
+  } catch (error) {
+    console.error("GET /api/progress error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  const progress = await prisma.lessonProgress.findMany({
-    where: { userId: auth.user.id },
-    select: {
-      lessonSlug: true,
-      status: true,
-      bestScore: true,
-      attemptsCount: true,
-      startedAt: true,
-      completedAt: true,
-    },
-  });
-
-  return NextResponse.json({ progress });
 }
 
 /**
@@ -53,94 +60,101 @@ export async function GET(request: Request) {
  *   увеличиваем attemptsCount
  */
 export async function POST(request: Request) {
-  const auth = await authenticateRequest(request);
-  if (!auth.ok) {
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-
-  // Парсим и валидируем тело запроса
-  let body: { lessonSlug?: string; score?: number };
   try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+    const auth = await authenticateRequest(request);
+    if (!auth.ok) {
+      console.error("POST /api/progress auth failed:", auth.error);
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
+    }
 
-  const { lessonSlug, score } = body;
+    // Парсим и валидируем тело запроса
+    let body: { lessonSlug?: string; score?: number };
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
-  if (!lessonSlug || typeof lessonSlug !== "string") {
-    return NextResponse.json(
-      { error: "lessonSlug is required" },
-      { status: 400 }
-    );
-  }
+    const { lessonSlug, score } = body;
 
-  if (score === undefined || typeof score !== "number" || score < 0 || score > 100) {
-    return NextResponse.json(
-      { error: "score must be a number 0-100" },
-      { status: 400 }
-    );
-  }
+    if (!lessonSlug || typeof lessonSlug !== "string") {
+      return NextResponse.json(
+        { error: "lessonSlug is required" },
+        { status: 400 }
+      );
+    }
 
-  // Upsert прогресса: создать или обновить.
-  // Используем составной уникальный ключ [userId, lessonSlug].
-  const existing = await prisma.lessonProgress.findUnique({
-    where: {
-      userId_lessonSlug: {
-        userId: auth.user.id,
-        lessonSlug,
-      },
-    },
-  });
+    if (score === undefined || typeof score !== "number" || score < 0 || score > 100) {
+      return NextResponse.json(
+        { error: "score must be a number 0-100" },
+        { status: 400 }
+      );
+    }
 
-  let progress;
-
-  if (!existing) {
-    // Первое прохождение — создаём запись
-    progress = await prisma.lessonProgress.create({
-      data: {
-        userId: auth.user.id,
-        lessonSlug,
-        status: "COMPLETED",
-        bestScore: score,
-        attemptsCount: 1,
-        completedAt: new Date(),
-      },
-    });
-  } else {
-    // Повторное прохождение — обновляем
-    progress = await prisma.lessonProgress.update({
+    // Upsert прогресса: создать или обновить
+    const existing = await prisma.lessonProgress.findUnique({
       where: {
         userId_lessonSlug: {
           userId: auth.user.id,
           lessonSlug,
         },
       },
-      data: {
-        // bestScore обновляем только если новый результат лучше
-        bestScore:
-          existing.bestScore === null || score > existing.bestScore
-            ? score
-            : existing.bestScore,
-        attemptsCount: existing.attemptsCount + 1,
-        status: "COMPLETED",
-        completedAt: new Date(),
+    });
+
+    let progress;
+
+    if (!existing) {
+      progress = await prisma.lessonProgress.create({
+        data: {
+          userId: auth.user.id,
+          lessonSlug,
+          status: "COMPLETED",
+          bestScore: score,
+          attemptsCount: 1,
+          completedAt: new Date(),
+        },
+      });
+    } else {
+      progress = await prisma.lessonProgress.update({
+        where: {
+          userId_lessonSlug: {
+            userId: auth.user.id,
+            lessonSlug,
+          },
+        },
+        data: {
+          bestScore:
+            existing.bestScore === null || score > existing.bestScore
+              ? score
+              : existing.bestScore,
+          attemptsCount: existing.attemptsCount + 1,
+          status: "COMPLETED",
+          completedAt: new Date(),
+        },
+      });
+    }
+
+    // Обновляем lastActivityAt пользователя
+    await prisma.user.update({
+      where: { id: auth.user.id },
+      data: { lastActivityAt: new Date() },
+    });
+
+    console.log("Progress saved:", { lessonSlug, score, userId: auth.user.id });
+
+    return NextResponse.json({
+      progress: {
+        lessonSlug: progress.lessonSlug,
+        status: progress.status,
+        bestScore: progress.bestScore,
+        attemptsCount: progress.attemptsCount,
       },
     });
+  } catch (error) {
+    console.error("POST /api/progress error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  // Обновляем lastActivityAt пользователя (для стриков в будущем)
-  await prisma.user.update({
-    where: { id: auth.user.id },
-    data: { lastActivityAt: new Date() },
-  });
-
-  return NextResponse.json({
-    progress: {
-      lessonSlug: progress.lessonSlug,
-      status: progress.status,
-      bestScore: progress.bestScore,
-      attemptsCount: progress.attemptsCount,
-    },
-  });
 }
