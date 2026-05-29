@@ -9,6 +9,10 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // CLI-инструменты (prisma db push, migrate) используют этот URL.
+    // Прямое подключение (порт 5432), потому что pgBouncer
+    // не поддерживает prepared statements, нужные для миграций.
+    // Приложение использует pooler-URL через PrismaClient — см. lib/prisma.ts.
+    url: process.env["DIRECT_URL"],
   },
 });

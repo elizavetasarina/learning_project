@@ -2,8 +2,62 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// URL подключения — в prisma.config.ts (Prisma 7+).
+// Здесь остаётся только provider.
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+}
+
+// ─── Пользователь ───────────────────────────────────────────
+// telegramId — внешний идентификатор из Telegram, хранится как BigInt
+// потому что Telegram ID может превышать 2^31 (лимит обычного Int).
+// Внутренний id (autoincrement) используется для FK в других таблицах —
+// это стандартный паттерн: внешний идентификатор ≠ первичный ключ.
+model User {
+  id             Int      @id @default(autoincrement())
+  telegramId     BigInt   @unique @map("telegram_id")
+  firstName      String   @map("first_name")
+  username       String?
+  languageCode   String?  @map("language_code")
+  createdAt      DateTime @default(now()) @map("created_at")
+  currentStreak  Int      @default(0) @map("current_streak")
+  longestStreak  Int      @default(0) @map("longest_streak")
+  totalXp        Int      @default(0) @map("total_xp")
+  lastActivityAt DateTime? @map("last_activity_at")
+
+  // Связь один-ко-многим: у юзера много записей прогресса
+  lessonProgress LessonProgress[]
+
+  @@map("users")
+}
+
+// ─── Прогресс по уроку ──────────────────────────────────────
+// Одна запись = один юзер + один урок.
+// @@unique([userId, lessonSlug]) гарантирует отсутствие дублей
+// и одновременно работает как индекс для быстрого поиска
+// "прогресс юзера X по уроку Y".
+model LessonProgress {
+  id             Int            @id @default(autoincrement())
+  userId         Int            @map("user_id")
+  lessonSlug     String         @map("lesson_slug")
+  status         LessonStatus   @default(STARTED)
+  startedAt      DateTime       @default(now()) @map("started_at")
+  completedAt    DateTime?      @map("completed_at")
+  bestScore      Int?           @map("best_score")
+  attemptsCount  Int            @default(0) @map("attempts_count")
+
+  // FK: связь с таблицей users
+  user User @relation(fields: [userId], references: [id])
+
+  // Составной уникальный индекс: один юзер — одна запись на урок
+  @@unique([userId, lessonSlug])
+  @@map("lesson_progress")
+}
+
+// ─── Enum: статус прохождения урока ─────────────────────────
+// STARTED — открыл урок, ещё не прошёл тест
+// COMPLETED — прошёл тест (bestScore записан)
+enum LessonStatus {
+  STARTED
+  COMPLETED
 }

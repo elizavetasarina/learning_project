@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle, XCircle, Home, RotateCcw } from "lucide-react";
 import type { Question } from "@/types/content";
+import { saveProgress } from "@/hooks/use-api";
 
 interface QuizViewProps {
   questions: Question[];
@@ -43,6 +44,16 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
 
   function handleNext() {
     if (isLast) {
+      // Считаем финальный процент и отправляем в API.
+      // correctCount уже включает текущий вопрос —
+      // handleCheck() вызывается ДО handleNext().
+      const percentage = Math.round((correctCount / questions.length) * 100);
+
+      // Отправляем результат в БД (fire-and-forget: не блокируем UI).
+      // Если запрос упадёт (нет Telegram, нет сети) — не страшно,
+      // пользователь увидит результат, просто он не сохранится.
+      saveProgress(slug, percentage);
+
       setIsFinished(true);
       return;
     }
