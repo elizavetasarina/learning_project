@@ -1,31 +1,44 @@
 import { PrismaClient } from "@prisma/client";
 
 /**
- * Синглтон Prisma Client.
+ * Ленивый синглтон Prisma Client.
  *
- * Проблема: в dev-режиме Next.js при hot reload каждый модуль
- * пересоздаётся, и `new PrismaClient()` вызывается снова и снова.
- * Каждый вызов — новое подключение к БД. За час можно исчерпать
- * лимит соединений Supabase free tier (~20).
+ * Почему "ленивый": PrismaClient создаётся НЕ при импорте модуля,
+ * а при первом обращении к prisma. Это важно, потому что Next.js
+ * может загрузить модуль при билде (сборке), когда БД недоступна.
+ * Если создавать PrismaClient сразу — билд упадёт с ошибкой подключения.
  *
- * Решение: храним экземпляр в globalThis — это объект, который
- * переживает hot reload (Node.js не очищает его при перезагрузке
- * модулей). В production globalThis не используется — там модули
- * загружаются один раз.
+ * Почему синглтон: в dev-режиме Next.js при hot reload пересоздаёт
+ * модули, и без синглтона каждая перезагрузка создаёт новое подключение.
+ * Храним экземпляр в globalThis — он переживает hot reload.
  */
 
-// Расширяем тип globalThis, чтобы TypeScript не ругался
-// на несуществующее свойство prisma
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Используем существующий экземпляр или создаём новый.
-// PrismaClient читает DATABASE_URL из .env автоматически (pooler, порт 6543).
-// prisma.config.ts использует DIRECT_URL (порт 5432) для CLI-операций.
-export const prisma = globalForPrisma.prisma ?? new PrismaClient();
-
-// В dev-режиме сохраняем в globalThis для переиспользования
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+/**
+ * Функция создаёт или возвращает существующий PrismaClient.
+ * Вызывается только при реальном обращении к БД, не при импорте.
+ */
+function getPrismaClient(): PrismaClient {
+  if (!globalForPrisma.prisma) {
+    globalForPrisma.prisma = new PrismaClient();
+  }
+  return globalForPrisma.prisma;
 }
+
+// Proxy перехватывает обращения к свойствам (prisma.user, prisma.lessonProgress)
+// и делегирует их реальному PrismaClient, создавая его по требованию.
+// Снаружи работает как обычный PrismaClient — разницы в использовании нет.
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, property) {
+    const client = getPrismaClient();
+    const value = client[property as keyof PrismaClient];
+    // Если свойство — метод, привязываем контекст (this) к клиенту
+    if (typeof value === "function") {
+      return value.bind(client);
+    }
+    return value;
+  },
+});

@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+// Запрещаем Next.js пре-рендерить этот роут при билде.
+// Без этого Next.js пытается выполнить код при сборке,
+// что вызывает ошибку подключения к БД (её нет в build-окружении).
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/progress
  *
