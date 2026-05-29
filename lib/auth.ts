@@ -1,13 +1,21 @@
 import { validateInitData } from "./telegram-auth";
 import { prisma } from "./prisma";
-import type { User } from "@prisma/client";
+
+/**
+ * Тип пользователя, выведенный из Prisma-схемы.
+ * Awaited<ReturnType<...>> — берём тип возврата prisma.user.upsert().
+ * Это надёжнее, чем import { User } from "@prisma/client",
+ * потому что не зависит от того, как Prisma экспортирует типы
+ * (в Prisma 7 это изменилось).
+ */
+type DbUser = Awaited<ReturnType<typeof prisma.user.upsert>>;
 
 /**
  * Результат аутентификации API-запроса.
  * Discriminated union: ok: true → есть user, ok: false → есть error + status.
  */
 type AuthResult =
-  | { ok: true; user: User }
+  | { ok: true; user: DbUser }
   | { ok: false; error: string; status: number };
 
 /**
