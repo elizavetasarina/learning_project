@@ -70,7 +70,7 @@
 | Frontend                     | Next.js 14+ (App Router)                                       | Знаю, серверные компоненты для контента            |
 | Язык                     | TypeScript (strict mode)                                       | Стандарт мидл+ уровня                                              |
 | Стили                   | Tailwind CSS                                                   | Знаю, быстрая разработка                                        |
-| Markdown                     | react-markdown + remark-gfm + rehype-highlight                 | Контент в .md, подсветка кода                                   |
+| Markdown                     | react-markdown + rehype-raw                                    | Контент в .md, inline SVG через rehype-raw                      |
 | State                        | React Context на старте → Zustand на 3 неделе | От простого к сложному осознанно                         |
 | Backend                      | Next.js API Routes                                             | Не плодим сервисы без нужды                                   |
 | БД                         | Postgres через Supabase (free tier)                       | Бесплатно, проще Railway                                               |
@@ -252,15 +252,18 @@ review_schedule
 
 **Контент:** ✅ 1 тестовый урок "Что такое Telegram Mini App" (теория с выносками + 4 вопроса с пояснениями).
 
-### Неделя 2: Прогресс и БД
+### 🔄 Неделя 2: Прогресс и БД (в процессе)
 
 **Технические задачи:**
 
-- Настроить Postgres через Supabase
-- Схема БД через Prisma
-- Аутентификация: валидация Telegram initData с HMAC на бэке
-- API-роуты для сохранения прогресса
-- Экран "Мой прогресс"
+- ✅ Настроить Postgres через Supabase (free tier, eu-west-1)
+- ✅ Схема БД через Prisma 7 (User + LessonProgress, RLS включён)
+- ✅ Prisma 7: driver adapter (@prisma/adapter-pg), ленивый синглтон с Proxy
+- ✅ Аутентификация: HMAC-SHA256 валидация Telegram initData (stateless)
+- ✅ API-роуты: GET/POST /api/progress (сохранение результатов квизов)
+- ✅ Клиентская интеграция: quiz-view отправляет результат, главная и список уроков показывают реальный прогресс
+- ✅ Деплой на Vercel (itlearn.vercel.app) + Telegram Bot подключён
+- ✅ Экран "Мой прогресс" (/progress): общий %, средний/лучший балл, список уроков со статусом
 
 **Параллельно учу:**
 
@@ -512,9 +515,8 @@ review_schedule
 
 **Следующая сессия:**
 
-- Написать 2-3 урока по пройденной теории (серверные компоненты, initData, хеши)
-- Подсветка кода в markdown (rehype-highlight), если нужна
-- Начать неделю 2 (БД, аутентификация)
+- Удалить /api/debug (отладочный эндпоинт)
+- Начать неделю 3 (система обучения, навигация, типы вопросов)
 
 ---
 

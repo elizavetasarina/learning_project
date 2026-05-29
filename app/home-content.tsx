@@ -103,13 +103,21 @@ export function HomeContent({ lessons }: HomeContentProps) {
         </div>
       </div>
 
-      {/* Ссылка ко всем урокам */}
-      <Link
-        href="/lessons"
-        className="flex h-12 items-center justify-center rounded-xl bg-accent px-6 font-semibold text-accent-text transition-all active:scale-[0.97]"
-      >
-        Все уроки
-      </Link>
+      {/* Кнопки навигации */}
+      <div className="flex flex-col gap-3">
+        <Link
+          href="/lessons"
+          className="flex h-12 items-center justify-center rounded-xl bg-accent px-6 font-semibold text-accent-text transition-all active:scale-[0.97]"
+        >
+          Все уроки
+        </Link>
+        <Link
+          href="/progress"
+          className="flex h-12 items-center justify-center rounded-xl border border-border/30 px-6 font-semibold transition-all active:scale-[0.97]"
+        >
+          Мой прогресс
+        </Link>
+      </div>
     </main>
   );
 }
