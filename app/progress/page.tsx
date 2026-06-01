@@ -1,7 +1,5 @@
-import { ChevronLeft } from "lucide-react";
 import { getAllLessons } from "@/lib/lessons";
 import { ProgressView } from "./progress-view";
-import Link from "next/link";
 
 /**
  * Страница «Мой прогресс» — серверный компонент.
@@ -12,15 +10,7 @@ export default async function ProgressPage() {
   const lessons = await getAllLessons();
 
   return (
-    <main className="flex flex-col gap-6 px-4 py-6">
-      <Link
-        href="/"
-        className="flex items-center gap-1 text-sm text-hint transition-opacity active:opacity-70"
-      >
-        <ChevronLeft size={18} />
-        Главная
-      </Link>
-
+    <main className="flex flex-col gap-6 px-4 pb-24 pt-6">
       <h1 className="text-[22px] font-bold leading-tight">Мой прогресс</h1>
 
       <ProgressView lessons={lessons} />

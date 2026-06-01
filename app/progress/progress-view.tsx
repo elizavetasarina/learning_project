@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -10,7 +11,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import type { LessonMeta } from "@/types/content";
-import { useProgress } from "@/hooks/use-progress";
+import { useProgressStore } from "@/store/progress";
 import { pluralize } from "@/lib/pluralize";
 
 interface ProgressViewProps {
@@ -26,7 +27,10 @@ interface ProgressViewProps {
  * 3. Детальный список по каждому уроку
  */
 export function ProgressView({ lessons }: ProgressViewProps) {
-  const { progressMap, isLoading } = useProgress();
+  const progressMap = useProgressStore((s) => s.progressMap);
+  const isLoading = useProgressStore((s) => s.isLoading);
+  const load = useProgressStore((s) => s.load);
+  useEffect(() => { load(); }, [load]);
 
   // ─── Подсчёт статистики ───────────────────────────────────
 

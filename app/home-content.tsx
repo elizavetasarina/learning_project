@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { Flame, BookOpen, ChevronRight, Trophy } from "lucide-react";
 import { useTelegram } from "@/hooks/use-telegram";
-import { useProgress } from "@/hooks/use-progress";
+import { useProgressStore } from "@/store/progress";
 import { WeekStreak } from "./week-streak";
 import type { LessonMeta } from "@/types/content";
 
@@ -14,7 +15,13 @@ interface HomeContentProps {
 
 export function HomeContent({ lessons }: HomeContentProps) {
   const { user, isReady } = useTelegram();
-  const { progressMap } = useProgress();
+
+  // Zustand: точечная подписка — перерендер только если progressMap изменился
+  const progressMap = useProgressStore((s) => s.progressMap);
+  const load = useProgressStore((s) => s.load);
+
+  // Загружаем прогресс при первом рендере (load внутри проверяет: если уже загружен — пропускает)
+  useEffect(() => { load(); }, [load]);
 
   if (!isReady) return null;
 
@@ -36,7 +43,7 @@ export function HomeContent({ lessons }: HomeContentProps) {
   const streak = { current: 0, best: 0 };
 
   return (
-    <main className="flex flex-1 flex-col gap-6 px-4 py-6">
+    <main className="flex flex-1 flex-col gap-6 px-4 pb-24 pt-6">
       {/* Приветствие */}
       <div>
         <p className="text-sm text-hint">Добро пожаловать</p>
@@ -84,21 +91,6 @@ export function HomeContent({ lessons }: HomeContentProps) {
         </div>
       </div>
 
-      {/* Кнопки навигации */}
-      <div className="flex flex-col gap-3">
-        <Link
-          href="/lessons"
-          className="flex h-12 items-center justify-center rounded-xl bg-accent px-6 font-semibold text-accent-text transition-all active:scale-[0.97]"
-        >
-          Все уроки
-        </Link>
-        <Link
-          href="/progress"
-          className="flex h-12 items-center justify-center rounded-xl border border-border/30 px-6 font-semibold transition-all active:scale-[0.97]"
-        >
-          Мой прогресс
-        </Link>
-      </div>
     </main>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { HelpCircle, CheckCircle } from "lucide-react";
 import type { LessonMeta } from "@/types/content";
-import { useProgress } from "@/hooks/use-progress";
+import { useProgressStore } from "@/store/progress";
 import { pluralize } from "@/lib/pluralize";
 
 interface LessonsListProps {
@@ -19,7 +20,9 @@ interface LessonsListProps {
  * Разделение: сервер готовит данные → клиент добавляет прогресс.
  */
 export function LessonsList({ lessons }: LessonsListProps) {
-  const { progressMap } = useProgress();
+  const progressMap = useProgressStore((s) => s.progressMap);
+  const load = useProgressStore((s) => s.load);
+  useEffect(() => { load(); }, [load]);
 
   return (
     <ul className="flex flex-col gap-3">

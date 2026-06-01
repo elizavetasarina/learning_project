@@ -105,6 +105,11 @@ export async function POST(request: Request) {
     // - EXCLUDED — ссылка на данные, которые "пытались вставить"
     //
     // RETURNING — возвращает результат без дополнительного SELECT.
+    // Порог: 85%+ = COMPLETED (тема пройдена), иначе STARTED.
+    // CASE в SQL: если лучший результат (с учётом нового) >= 85 → COMPLETED.
+    // При INSERT: просто проверяем $3 (score). При UPDATE: GREATEST из старого и нового.
+    const PASS_THRESHOLD = 85;
+
     const [progress] = await prisma.$queryRawUnsafe<
       Array<{
         lesson_slug: string;
@@ -115,17 +120,25 @@ export async function POST(request: Request) {
     >(
       `INSERT INTO lesson_progress
          (user_id, lesson_slug, status, best_score, attempts_count, started_at, completed_at)
-       VALUES ($1, $2, 'COMPLETED', $3, 1, NOW(), NOW())
+       VALUES ($1, $2,
+         CASE WHEN $3 >= $4 THEN 'COMPLETED' ELSE 'STARTED' END,
+         $3, 1, NOW(),
+         CASE WHEN $3 >= $4 THEN NOW() ELSE NULL END)
        ON CONFLICT (user_id, lesson_slug)
        DO UPDATE SET
          best_score = GREATEST(lesson_progress.best_score, EXCLUDED.best_score),
          attempts_count = lesson_progress.attempts_count + 1,
-         status = 'COMPLETED',
-         completed_at = NOW()
+         status = CASE
+           WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4
+           THEN 'COMPLETED' ELSE 'STARTED' END,
+         completed_at = CASE
+           WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4
+           THEN COALESCE(lesson_progress.completed_at, NOW()) ELSE NULL END
        RETURNING lesson_slug, status, best_score, attempts_count`,
       auth.user.id,
       lessonSlug,
-      score
+      score,
+      PASS_THRESHOLD
     );
 
     // lastActivityAt обновляется в authenticateRequest() с throttle — не дублируем.

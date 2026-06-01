@@ -64,5 +64,20 @@
     "question": "Что вернёт typeof null? (без кавычек)",
     "answer": "object",
     "explanation": "typeof null возвращает 'object' — это исторический баг языка, который оставили навсегда ради обратной совместимости. null при этом является примитивом, несмотря на такой результат typeof."
+  },
+  {
+    "id": "q7",
+    "type": "multi",
+    "question": "Какие из этих значений являются примитивами в JavaScript?",
+    "options": [
+      "\"hello\"",
+      "{ name: \"JS\" }",
+      "42n",
+      "[1, 2, 3]",
+      "Symbol('id')",
+      "null"
+    ],
+    "correct": [0, 2, 4, 5],
+    "explanation": "Примитивы: строка (\"hello\"), BigInt (42n), Symbol и null. Объект { name: \"JS\" } и массив [1, 2, 3] — это ссылочные типы (object). Массив в JavaScript — это тоже объект."
   }
 ]

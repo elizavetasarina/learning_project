@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { TabBar } from "./tab-bar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default function RootLayout({
           strategy="beforeInteractive"
         />
         {children}
+        <TabBar />
       </body>
     </html>
   );

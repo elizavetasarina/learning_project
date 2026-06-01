@@ -22,6 +22,16 @@ export interface ChoiceQuestion {
   explanation?: string;   // пояснение, показывается после ответа
 }
 
+/** Вопрос с несколькими правильными ответами */
+export interface MultiQuestion {
+  id: string;
+  type: "multi";
+  question: string;
+  options: string[];
+  correct: number[];      // массив индексов правильных вариантов
+  explanation?: string;
+}
+
 /** Вопрос со свободным вводом */
 export interface InputQuestion {
   id: string;
@@ -31,5 +41,5 @@ export interface InputQuestion {
   explanation?: string;   // пояснение, показывается после ответа
 }
 
-/** Объединённый тип — вопрос может быть любым из двух */
-export type Question = ChoiceQuestion | InputQuestion;
+/** Объединённый тип — вопрос может быть любым из трёх */
+export type Question = ChoiceQuestion | MultiQuestion | InputQuestion;
