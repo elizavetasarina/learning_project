@@ -223,7 +223,7 @@ review_schedule
 - Экран приветствия "Привет, {имя}"
 - Создан CLAUDE.md с правилами
 
-### 🔄 Неделя 1: Фундамент контента (в процессе)
+### ✅ Неделя 1: Фундамент контента
 
 **Технические задачи:**
 
@@ -248,11 +248,11 @@ review_schedule
 - ✅ TypeScript: типизация структуры контента (union types, interfaces)
 - ✅ Архитектура: серверный модуль для данных, отделение от UI
 - ✅ App Router: вложенные динамические роуты (`[slug]/quiz/`)
-- React: useEffect глубже, правила хуков
+- ✅ React: useEffect глубже, правила хуков
 
 **Контент:** ✅ 1 тестовый урок "Что такое Telegram Mini App" (теория с выносками + 4 вопроса с пояснениями).
 
-### 🔄 Неделя 2: Прогресс и БД (в процессе)
+### ✅ Неделя 2: Прогресс и БД
 
 **Технические задачи:**
 
@@ -260,19 +260,21 @@ review_schedule
 - ✅ Схема БД через Prisma 7 (User + LessonProgress, RLS включён)
 - ✅ Prisma 7: driver adapter (@prisma/adapter-pg), ленивый синглтон с Proxy
 - ✅ Аутентификация: HMAC-SHA256 валидация Telegram initData (stateless)
-- ✅ API-роуты: GET/POST /api/progress (сохранение результатов квизов)
+- ✅ API-роуты: GET/POST /api/progress (raw SQL upsert с GREATEST)
 - ✅ Клиентская интеграция: quiz-view отправляет результат, главная и список уроков показывают реальный прогресс
 - ✅ Деплой на Vercel (itlearn.vercel.app) + Telegram Bot подключён
 - ✅ Экран "Мой прогресс" (/progress): общий %, средний/лучший балл, список уроков со статусом
+- ✅ Code review + рефакторинг: pluralize утилита, useProgress хук, api-client в lib/, удалён debug endpoint
 
 **Параллельно учу:**
 
-- Безопасность: HMAC, валидация подписи, что хранить на сервере, что на клиенте
-- Базы данных: проектирование схемы, индексы, миграции
-- Backend на Next.js: API Routes, серверные vs клиентские компоненты
+- ✅ Безопасность: HMAC, валидация подписи, timingSafeEqual, что хранить на сервере
+- ✅ Базы данных: проектирование схемы, upsert, ON CONFLICT, GREATEST, connection pooling
+- ✅ Backend на Next.js: API Routes, серверные vs клиентские компоненты
+- ✅ Архитектура: DRY (pluralize, useProgress), разделение hooks/lib, throttle lastActivityAt
 - **Это самый сильный буст к мидл+ уровню за весь проект**
 
-**Контент:** 2-3 урока по темам, которые прошли на этой неделе с Claude-в-чате.
+**Контент:** ✅ Урок 4 «Архитектура fullstack-приложения» + квиз 12 вопросов (HMAC, ORM, upsert, синглтон, pooling, tradeoffs).
 
 ### Неделя 3: Система обучения
 
@@ -498,24 +500,33 @@ review_schedule
 - ✅ CSS-переменные Telegram-темы с фолбэками
 - ✅ Создан CLAUDE.md и PROJECT_CONTEXT.md
 
-**Неделя 1 — в процессе:**
+**Неделя 1 — завершена:**
 
 - ✅ Теория: серверные vs клиентские компоненты, react-markdown vs MDX, структура контента
-- ✅ Установлены react-markdown + gray-matter + lucide-react
+- ✅ Установлены react-markdown + gray-matter + rehype-raw + lucide-react
 - ✅ Структура content/ (плоская, папка = урок, frontmatter вместо meta.json)
 - ✅ Серверный модуль lib/lessons.ts (чтение + парсинг + подсчёт вопросов)
-- ✅ Design System применён: globals.css (accent индиго, semantic colors, типографика)
-- ✅ Главная — дашборд: WeekStreak, карточка «Продолжить», мини-статистика (3 карточки)
-- ✅ Страница /lessons — карточки с secondary-bg, прогресс-бар, кол-во вопросов
-- ✅ Страница /lessons/[slug] — теория (blockquote-выноски, кастомные буллеты, CTA к тесту)
+- ✅ Design System применён: globals.css (accent индиго, semantic colors, SVG-классы, тёмная тема)
+- ✅ Главная — дашборд: WeekStreak, карточка «Продолжить», мини-статистика
+- ✅ Страница /lessons — карточки с прогресс-баром и кол-вом вопросов
+- ✅ Страница /lessons/[slug] — теория (blockquote-выноски, кастомные буллеты, inline SVG, CTA к тесту)
 - ✅ Страница /lessons/[slug]/quiz — тест отдельно (итоговый экран, %, retry, «На главную»)
-- ✅ Первый урок с тестом, пояснениями и выносками
-- ✅ Добавить ещё 2-3 урока по пройденным темам
+- ✅ 3 урока по JS (типы, замыкания, event loop) + inline SVG-схемы
 - ⏳ Нечёткое сравнение для input-вопросов — отложено
+
+**Неделя 2 — завершена:**
+
+- ✅ Supabase Postgres + Prisma 7 (driver adapter, ленивый синглтон, RLS)
+- ✅ HMAC-SHA256 аутентификация (stateless, timingSafeEqual)
+- ✅ API: GET/POST /api/progress (raw SQL upsert с ON CONFLICT + GREATEST)
+- ✅ Клиент: quiz-view отправляет результат, главная и список показывают реальный прогресс
+- ✅ Деплой Vercel (itlearn.vercel.app) + Telegram Bot
+- ✅ Экран «Мой прогресс» (/progress)
+- ✅ Code review + рефакторинг: pluralize, useProgress хук, api-client → lib/, throttle lastActivityAt
+- ✅ Урок 4 «Архитектура fullstack-приложения» + квиз (12 вопросов)
 
 **Следующая сессия:**
 
-- Удалить /api/debug (отладочный эндпоинт)
 - Начать неделю 3 (система обучения, навигация, типы вопросов)
 
 ---

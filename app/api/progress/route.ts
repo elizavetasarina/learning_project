@@ -63,7 +63,6 @@ export async function POST(request: Request) {
   try {
     const auth = await authenticateRequest(request);
     if (!auth.ok) {
-      console.error("POST /api/progress auth failed:", auth.error);
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
@@ -91,63 +90,52 @@ export async function POST(request: Request) {
       );
     }
 
-    // Upsert прогресса: создать или обновить
-    const existing = await prisma.lessonProgress.findUnique({
-      where: {
-        userId_lessonSlug: {
-          userId: auth.user.id,
-          lessonSlug,
-        },
-      },
-    });
+    // Upsert прогресса + обновление lastActivityAt — один SQL-запрос.
+    //
+    // Почему raw SQL вместо Prisma ORM:
+    // Prisma upsert не даёт доступа к текущему значению поля в update.
+    // Нам нужно: "обнови bestScore только если новый выше" — это
+    // GREATEST(текущее, новое) в SQL. ORM это не умеет.
+    //
+    // INSERT ON CONFLICT — PostgreSQL-версия upsert:
+    // - INSERT пытается вставить новую строку
+    // - ON CONFLICT (user_id, lesson_slug) — если пара уже существует...
+    // - DO UPDATE SET — ...обновляем существующую строку
+    // - GREATEST(best_score, $3) — берём максимум из старого и нового
+    // - EXCLUDED — ссылка на данные, которые "пытались вставить"
+    //
+    // RETURNING — возвращает результат без дополнительного SELECT.
+    const [progress] = await prisma.$queryRawUnsafe<
+      Array<{
+        lesson_slug: string;
+        status: string;
+        best_score: number | null;
+        attempts_count: number;
+      }>
+    >(
+      `INSERT INTO lesson_progress
+         (user_id, lesson_slug, status, best_score, attempts_count, started_at, completed_at)
+       VALUES ($1, $2, 'COMPLETED', $3, 1, NOW(), NOW())
+       ON CONFLICT (user_id, lesson_slug)
+       DO UPDATE SET
+         best_score = GREATEST(lesson_progress.best_score, EXCLUDED.best_score),
+         attempts_count = lesson_progress.attempts_count + 1,
+         status = 'COMPLETED',
+         completed_at = NOW()
+       RETURNING lesson_slug, status, best_score, attempts_count`,
+      auth.user.id,
+      lessonSlug,
+      score
+    );
 
-    let progress;
-
-    if (!existing) {
-      progress = await prisma.lessonProgress.create({
-        data: {
-          userId: auth.user.id,
-          lessonSlug,
-          status: "COMPLETED",
-          bestScore: score,
-          attemptsCount: 1,
-          completedAt: new Date(),
-        },
-      });
-    } else {
-      progress = await prisma.lessonProgress.update({
-        where: {
-          userId_lessonSlug: {
-            userId: auth.user.id,
-            lessonSlug,
-          },
-        },
-        data: {
-          bestScore:
-            existing.bestScore === null || score > existing.bestScore
-              ? score
-              : existing.bestScore,
-          attemptsCount: existing.attemptsCount + 1,
-          status: "COMPLETED",
-          completedAt: new Date(),
-        },
-      });
-    }
-
-    // Обновляем lastActivityAt пользователя
-    await prisma.user.update({
-      where: { id: auth.user.id },
-      data: { lastActivityAt: new Date() },
-    });
-
-    console.log("Progress saved:", { lessonSlug, score, userId: auth.user.id });
+    // lastActivityAt обновляется в authenticateRequest() с throttle — не дублируем.
 
     return NextResponse.json({
       progress: {
-        lessonSlug: progress.lessonSlug,
+        lessonSlug: progress.lesson_slug,
         status: progress.status,
-        bestScore: progress.bestScore,
-        attemptsCount: progress.attemptsCount,
+        bestScore: progress.best_score,
+        attemptsCount: progress.attempts_count,
       },
     });
   } catch (error) {

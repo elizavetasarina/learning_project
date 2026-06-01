@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { ChevronLeft, HelpCircle, ArrowRight } from "lucide-react";
 import { getLesson, getQuestions } from "@/lib/lessons";
+import { pluralize } from "@/lib/pluralize";
 import { LessonContent } from "./lesson-content";
 import Link from "next/link";
 
@@ -58,7 +59,7 @@ export default async function LessonPage({ params }: LessonPageProps) {
           <div className="flex-1">
             <p className="font-semibold">Проверь себя</p>
             <p className="text-[13px] opacity-80">
-              {questions.length} {getQuestionsWord(questions.length)} по теме
+              {questions.length} {pluralize(questions.length, "вопрос", "вопроса", "вопросов")} по теме
             </p>
           </div>
           <ArrowRight size={20} />
@@ -68,11 +69,3 @@ export default async function LessonPage({ params }: LessonPageProps) {
   );
 }
 
-function getQuestionsWord(n: number): string {
-  const abs = Math.abs(n) % 100;
-  const lastDigit = abs % 10;
-  if (abs >= 11 && abs <= 19) return "вопросов";
-  if (lastDigit === 1) return "вопрос";
-  if (lastDigit >= 2 && lastDigit <= 4) return "вопроса";
-  return "вопросов";
-}

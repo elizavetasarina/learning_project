@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -11,7 +10,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import type { LessonMeta } from "@/types/content";
-import { fetchProgress, type LessonProgressData } from "@/hooks/use-api";
+import { useProgress } from "@/hooks/use-progress";
+import { pluralize } from "@/lib/pluralize";
 
 interface ProgressViewProps {
   lessons: LessonMeta[];
@@ -26,25 +26,7 @@ interface ProgressViewProps {
  * 3. Детальный список по каждому уроку
  */
 export function ProgressView({ lessons }: ProgressViewProps) {
-  const [progressMap, setProgressMap] = useState<Map<
-    string,
-    LessonProgressData
-  > | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadProgress() {
-      const result = await fetchProgress();
-      if (result.ok) {
-        const map = new Map(
-          result.data.progress.map((p) => [p.lessonSlug, p])
-        );
-        setProgressMap(map);
-      }
-      setIsLoading(false);
-    }
-    loadProgress();
-  }, []);
+  const { progressMap, isLoading } = useProgress();
 
   // ─── Подсчёт статистики ───────────────────────────────────
 
@@ -104,7 +86,7 @@ export function ProgressView({ lessons }: ProgressViewProps) {
         </div>
         <p className="mt-2 text-xs text-hint">
           {completedCount} из {totalCount}{" "}
-          {getLessonsWord(totalCount)} пройдено
+          {pluralize(totalCount, "урок", "урока", "уроков")} пройдено
         </p>
       </div>
 
@@ -160,7 +142,7 @@ export function ProgressView({ lessons }: ProgressViewProps) {
                   {isCompleted && score !== null ? (
                     <p className="mt-0.5 text-xs text-hint">
                       Лучший: {score}% · {attempts}{" "}
-                      {getAttemptsWord(attempts)}
+                      {pluralize(attempts, "попытка", "попытки", "попыток")}
                     </p>
                   ) : (
                     <p className="mt-0.5 text-xs text-hint">Не пройден</p>
@@ -178,22 +160,3 @@ export function ProgressView({ lessons }: ProgressViewProps) {
   );
 }
 
-// ─── Склонения ──────────────────────────────────────────────
-
-function getLessonsWord(n: number): string {
-  const abs = Math.abs(n) % 100;
-  const lastDigit = abs % 10;
-  if (abs >= 11 && abs <= 19) return "уроков";
-  if (lastDigit === 1) return "урок";
-  if (lastDigit >= 2 && lastDigit <= 4) return "урока";
-  return "уроков";
-}
-
-function getAttemptsWord(n: number): string {
-  const abs = Math.abs(n) % 100;
-  const lastDigit = abs % 10;
-  if (abs >= 11 && abs <= 19) return "попыток";
-  if (lastDigit === 1) return "попытка";
-  if (lastDigit >= 2 && lastDigit <= 4) return "попытки";
-  return "попыток";
-}

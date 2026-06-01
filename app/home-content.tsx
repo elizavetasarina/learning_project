@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Flame, BookOpen, ChevronRight, Trophy } from "lucide-react";
 import { useTelegram } from "@/hooks/use-telegram";
+import { useProgress } from "@/hooks/use-progress";
 import { WeekStreak } from "./week-streak";
-import { fetchProgress, type LessonProgressData } from "@/hooks/use-api";
 import type { LessonMeta } from "@/types/content";
 
 interface HomeContentProps {
@@ -15,25 +14,7 @@ interface HomeContentProps {
 
 export function HomeContent({ lessons }: HomeContentProps) {
   const { user, isReady } = useTelegram();
-
-  // Прогресс из API. null = ещё загружается.
-  const [progressMap, setProgressMap] = useState<Map<
-    string,
-    LessonProgressData
-  > | null>(null);
-
-  useEffect(() => {
-    async function loadProgress() {
-      const result = await fetchProgress();
-      if (result.ok) {
-        const map = new Map(
-          result.data.progress.map((p) => [p.lessonSlug, p])
-        );
-        setProgressMap(map);
-      }
-    }
-    loadProgress();
-  }, []);
+  const { progressMap } = useProgress();
 
   if (!isReady) return null;
 

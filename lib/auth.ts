@@ -75,6 +75,22 @@ export async function authenticateRequest(
       },
     });
 
+    // Обновляем lastActivityAt с throttle: не чаще раза в час.
+    // Без throttle каждый API-запрос (а их 2-3 при открытии страницы)
+    // делал бы лишний UPDATE. С throttle — максимум 1 UPDATE в час.
+    const ONE_HOUR = 60 * 60 * 1000;
+    const lastActivity = user.lastActivityAt?.getTime() ?? 0;
+    if (Date.now() - lastActivity > ONE_HOUR) {
+      // fire-and-forget: не ждём результат, не блокируем ответ.
+      // Если UPDATE упадёт — не страшно, обновится при следующем запросе.
+      prisma.user
+        .update({
+          where: { id: user.id },
+          data: { lastActivityAt: new Date() },
+        })
+        .catch(() => {});
+    }
+
     return { ok: true, user };
   } catch (error) {
     console.error("Auth DB error:", error);

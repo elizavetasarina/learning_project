@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { CheckCircle, XCircle, Home, RotateCcw } from "lucide-react";
 import type { Question } from "@/types/content";
-import { saveProgress } from "@/hooks/use-api";
+import { saveProgress } from "@/lib/api-client";
 
 interface QuizViewProps {
   questions: Question[];

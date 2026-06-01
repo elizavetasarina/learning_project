@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { HelpCircle, CheckCircle } from "lucide-react";
 import type { LessonMeta } from "@/types/content";
-import { fetchProgress, type LessonProgressData } from "@/hooks/use-api";
+import { useProgress } from "@/hooks/use-progress";
+import { pluralize } from "@/lib/pluralize";
 
 interface LessonsListProps {
   lessons: LessonMeta[];
@@ -19,25 +19,7 @@ interface LessonsListProps {
  * Разделение: сервер готовит данные → клиент добавляет прогресс.
  */
 export function LessonsList({ lessons }: LessonsListProps) {
-  // Map: lessonSlug → прогресс. null = ещё не загрузили.
-  const [progressMap, setProgressMap] = useState<Map<
-    string,
-    LessonProgressData
-  > | null>(null);
-
-  useEffect(() => {
-    async function loadProgress() {
-      const result = await fetchProgress();
-      if (result.ok) {
-        // Преобразуем массив в Map для быстрого поиска по slug: O(1) вместо O(n)
-        const map = new Map(
-          result.data.progress.map((p) => [p.lessonSlug, p])
-        );
-        setProgressMap(map);
-      }
-    }
-    loadProgress();
-  }, []);
+  const { progressMap } = useProgress();
 
   return (
     <ul className="flex flex-col gap-3">
@@ -70,7 +52,7 @@ export function LessonsList({ lessons }: LessonsListProps) {
                     <HelpCircle size={14} />
                     <span>
                       {lesson.questionCount}{" "}
-                      {getQuestionsWord(lesson.questionCount)}
+                      {pluralize(lesson.questionCount, "вопрос", "вопроса", "вопросов")}
                     </span>
                   </div>
                 )}
@@ -96,12 +78,3 @@ export function LessonsList({ lessons }: LessonsListProps) {
   );
 }
 
-/** Склонение слова "вопрос" */
-function getQuestionsWord(n: number): string {
-  const abs = Math.abs(n) % 100;
-  const lastDigit = abs % 10;
-  if (abs >= 11 && abs <= 19) return "вопросов";
-  if (lastDigit === 1) return "вопрос";
-  if (lastDigit >= 2 && lastDigit <= 4) return "вопроса";
-  return "вопросов";
-}
