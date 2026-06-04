@@ -31,17 +31,32 @@ interface SendMessageOptions {
 }
 
 /**
- * Отправить сообщение юзеру через бота.
+ * Результат отправки: bool + детали для диагностики.
  *
- * Возвращает true при успехе, false при ошибке.
- * Не бросает — в массовой рассылке одна упавшая отправка
+ * Раньше возвращали только bool, но это слишком мало для отладки —
+ * теряли причину отказа. Теперь возвращаем сырой ответ Telegram'а:
+ * status (200/400/403/...) и body (текст ответа Bot API).
+ *
+ * В массовом cron используется только поле `ok`. В test-push и логах
+ * читаем status/body для диагностики.
+ */
+export interface SendResult {
+  ok: boolean;
+  status: number | null;     // HTTP-статус от Bot API, null если fetch упал
+  body: unknown;             // тело ответа (JSON или текст)
+  error?: string;            // текст исключения, если был throw
+}
+
+/**
+ * Отправить сообщение юзеру через бота.
+ * Не бросает: в массовой рассылке одна упавшая отправка
  * не должна валить весь cron.
  */
-export async function sendMessage(opts: SendMessageOptions): Promise<boolean> {
+export async function sendMessage(opts: SendMessageOptions): Promise<SendResult> {
   const token = process.env.BOT_TOKEN;
   if (!token) {
     console.error("[telegram-bot] BOT_TOKEN не задан");
-    return false;
+    return { ok: false, status: null, body: null, error: "BOT_TOKEN missing" };
   }
 
   // Собираем body. reply_markup добавляется только если есть кнопка.
@@ -71,17 +86,25 @@ export async function sendMessage(opts: SendMessageOptions): Promise<boolean> {
       body: JSON.stringify(body),
     });
 
+    // Bot API всегда отдаёт JSON: { ok, result?, error_code?, description? }
+    const parsed = await response.json().catch(() => null);
+
     if (!response.ok) {
-      const text = await response.text().catch(() => "");
       console.error(
-        `[telegram-bot] sendMessage failed: ${response.status} ${text}`,
+        `[telegram-bot] sendMessage failed: ${response.status}`,
+        parsed,
       );
-      return false;
+      return { ok: false, status: response.status, body: parsed };
     }
 
-    return true;
+    return { ok: true, status: response.status, body: parsed };
   } catch (err) {
     console.error("[telegram-bot] sendMessage threw:", err);
-    return false;
+    return {
+      ok: false,
+      status: null,
+      body: null,
+      error: err instanceof Error ? err.message : String(err),
+    };
   }
 }

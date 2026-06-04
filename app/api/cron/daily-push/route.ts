@@ -84,7 +84,7 @@ export async function GET(request: Request) {
           return;
         }
 
-        const ok = await sendMessage({
+        const result = await sendMessage({
           chatId: user.telegramId,
           text: notification.text,
           button: appUrl
@@ -92,7 +92,7 @@ export async function GET(request: Request) {
             : undefined,
         });
 
-        if (ok) {
+        if (result.ok) {
           stats.sent++;
           stats.byTrigger[notification.trigger]++;
         } else {

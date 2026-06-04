@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
   const appUrl = process.env.APP_URL ?? "";
 
-  const ok = await sendMessage({
+  const result = await sendMessage({
     chatId: user.telegramId,
     text:
       `🧪 <b>Тестовый push</b>\n\n` +
@@ -49,12 +49,18 @@ export async function GET(request: Request) {
       : undefined,
   });
 
+  // Возвращаем весь результат — статус и тело ответа Bot API.
+  // По description от Telegram можно сразу понять что не так.
   return NextResponse.json({
-    ok,
+    ok: result.ok,
+    status: result.status,
+    botApiResponse: result.body,
+    error: result.error,
     sentTo: {
       id: user.id,
       telegramId: user.telegramId.toString(),
       firstName: user.firstName,
     },
+    hasAppUrl: !!appUrl,
   });
 }
