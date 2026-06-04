@@ -135,25 +135,32 @@ export async function POST(request: Request) {
         attempts_count: number;
       }>
     >(
-      // Важно: 'COMPLETED'/'STARTED' приходится явно кастить в "LessonStatus".
-      // Postgres делает implicit text→enum cast только в UPDATE-присваивании,
-      // а в INSERT VALUES — нет. Без ::"LessonStatus" падает с:
+      // Явные касты типов критичны при $queryRawUnsafe с Prisma 7 + adapter-pg.
+      // Параметры $1..$4 уходят в pg-драйвер как unknown, и Postgres ловит их
+      // как text — а колонки строго типизированы.
+      // Без кастов падает с:
       //   column "status" is of type "LessonStatus" but expression is of type text
+      //   column "best_score" is of type integer but expression is of type text
+      // Касты:
+      //   $1::int          → user_id
+      //   $3::int          → score / best_score
+      //   $4::int          → PASS_THRESHOLD
+      //   ::"LessonStatus" → enum статуса
       `INSERT INTO lesson_progress
          (user_id, lesson_slug, status, best_score, attempts_count, started_at, completed_at)
-       VALUES ($1, $2,
-         (CASE WHEN $3 >= $4 THEN 'COMPLETED' ELSE 'STARTED' END)::"LessonStatus",
-         $3, 1, NOW(),
-         CASE WHEN $3 >= $4 THEN NOW() ELSE NULL END)
+       VALUES ($1::int, $2,
+         (CASE WHEN $3::int >= $4::int THEN 'COMPLETED' ELSE 'STARTED' END)::"LessonStatus",
+         $3::int, 1, NOW(),
+         CASE WHEN $3::int >= $4::int THEN NOW() ELSE NULL END)
        ON CONFLICT (user_id, lesson_slug)
        DO UPDATE SET
          best_score = GREATEST(lesson_progress.best_score, EXCLUDED.best_score),
          attempts_count = lesson_progress.attempts_count + 1,
          status = (CASE
-           WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4
+           WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4::int
            THEN 'COMPLETED' ELSE 'STARTED' END)::"LessonStatus",
          completed_at = CASE
-           WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4
+           WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4::int
            THEN COALESCE(lesson_progress.completed_at, NOW()) ELSE NULL END
        RETURNING lesson_slug, status, best_score, attempts_count`,
       auth.user.id,
