@@ -208,16 +208,11 @@ export async function POST(request: Request) {
       xpEarned,
     });
   } catch (error) {
+    // Лог идёт в Vercel logs — там и смотреть детали, если что-то упадёт.
+    // Клиенту отдаём generic, чтобы не светить внутренности.
     console.error("POST /api/progress error:", error);
-    // ВРЕМЕННО возвращаем реальный текст ошибки клиенту для диагностики.
-    // Вернуть на "Internal server error" после починки.
     return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? `${error.name}: ${error.message}`
-            : "Internal server error",
-      },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

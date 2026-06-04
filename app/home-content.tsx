@@ -103,14 +103,6 @@ export function HomeContent({ lessons }: HomeContentProps) {
         </div>
       </div>
 
-      {/* Временная кнопка диагностики. Удалить после починки сохранения. */}
-      <Link
-        href="/debug"
-        className="flex h-11 items-center justify-center rounded-xl border border-warning/30 bg-warning/5 text-[13px] font-medium text-warning transition-all active:scale-[0.97]"
-      >
-        🔧 Debug: показать данные из БД
-      </Link>
-
     </main>
   );
 }
