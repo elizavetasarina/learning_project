@@ -30,8 +30,12 @@ interface ProgressState {
 interface ProgressActions {
   /** Загрузить прогресс из API (вызывается один раз при старте) */
   load: () => Promise<void>;
-  /** Сохранить результат квиза и обновить локальный state */
-  save: (lessonSlug: string, score: number) => Promise<boolean>;
+  /**
+   * Сохранить результат квиза и обновить локальный state.
+   * Возвращает: null = успех, строка = текст ошибки от сервера.
+   * Раньше возвращал boolean — но тогда теряли причину ошибки.
+   */
+  save: (lessonSlug: string, score: number) => Promise<string | null>;
 }
 
 // ─── Store ──────────────────────────────────────────────────
@@ -100,10 +104,10 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
           userData: updatedUser,
           lastXpEarned: result.data.xpEarned,
         });
-        return true;
+        return null; // успех
       }
 
-      return false;
+      return result.error; // текст ошибки от сервера
     },
   })
 );

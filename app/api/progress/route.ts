@@ -135,19 +135,23 @@ export async function POST(request: Request) {
         attempts_count: number;
       }>
     >(
+      // Важно: 'COMPLETED'/'STARTED' приходится явно кастить в "LessonStatus".
+      // Postgres делает implicit text→enum cast только в UPDATE-присваивании,
+      // а в INSERT VALUES — нет. Без ::"LessonStatus" падает с:
+      //   column "status" is of type "LessonStatus" but expression is of type text
       `INSERT INTO lesson_progress
          (user_id, lesson_slug, status, best_score, attempts_count, started_at, completed_at)
        VALUES ($1, $2,
-         CASE WHEN $3 >= $4 THEN 'COMPLETED' ELSE 'STARTED' END,
+         (CASE WHEN $3 >= $4 THEN 'COMPLETED' ELSE 'STARTED' END)::"LessonStatus",
          $3, 1, NOW(),
          CASE WHEN $3 >= $4 THEN NOW() ELSE NULL END)
        ON CONFLICT (user_id, lesson_slug)
        DO UPDATE SET
          best_score = GREATEST(lesson_progress.best_score, EXCLUDED.best_score),
          attempts_count = lesson_progress.attempts_count + 1,
-         status = CASE
+         status = (CASE
            WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4
-           THEN 'COMPLETED' ELSE 'STARTED' END,
+           THEN 'COMPLETED' ELSE 'STARTED' END)::"LessonStatus",
          completed_at = CASE
            WHEN GREATEST(lesson_progress.best_score, EXCLUDED.best_score) >= $4
            THEN COALESCE(lesson_progress.completed_at, NOW()) ELSE NULL END
@@ -198,8 +202,15 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("POST /api/progress error:", error);
+    // ВРЕМЕННО возвращаем реальный текст ошибки клиенту для диагностики.
+    // Вернуть на "Internal server error" после починки.
     return NextResponse.json(
-      { error: "Internal server error" },
+      {
+        error:
+          error instanceof Error
+            ? `${error.name}: ${error.message}`
+            : "Internal server error",
+      },
       { status: 500 }
     );
   }

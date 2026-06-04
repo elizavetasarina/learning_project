@@ -99,10 +99,11 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
       const percentage = Math.round((correctCount / questions.length) * 100);
       setIsSaving(true);
       setSaveError(null);
-      const ok = await saveToServer(slug, percentage);
+      const err = await saveToServer(slug, percentage);
       setIsSaving(false);
-      if (!ok) {
-        setSaveError("Не удалось сохранить результат. Проверь связь и попробуй снова.");
+      if (err !== null) {
+        // Показываем РЕАЛЬНЫЙ текст ошибки от сервера — без него непонятно, что чинить
+        setSaveError(err);
         return; // не переходим на финальный экран, чтобы юзер не потерял шанс retry
       }
     }
@@ -353,9 +354,10 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
         ) : (
           <>
             {saveError && (
-              <p className="mb-3 rounded-lg bg-error/10 px-3 py-2 text-[13px] text-error">
-                {saveError}
-              </p>
+              <div className="mb-3 rounded-lg bg-error/10 px-3 py-2 text-[13px] text-error">
+                <p className="font-semibold">Не удалось сохранить:</p>
+                <p className="mt-0.5 break-all">{saveError}</p>
+              </div>
             )}
             <button
               type="button"
