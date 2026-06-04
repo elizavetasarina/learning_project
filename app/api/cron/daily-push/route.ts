@@ -98,6 +98,11 @@ export async function GET(request: Request) {
           stats.byTrigger[notification.trigger]++;
         } else {
           stats.failed++;
+          // Лог в Vercel: telegram_id + статус + описание от Bot API
+          console.error(
+            `[cron] sendMessage failed for user ${user.id} (tg ${user.telegramId}):`,
+            { status: result.status, body: result.body, error: result.error },
+          );
         }
       }),
     );

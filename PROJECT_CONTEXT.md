@@ -100,13 +100,16 @@ content/
     quiz.json
 ```
 
-Решение (принято на неделе 1):
+Решение (на неделе 1, переработано на неделе 4):
 
-- Плоская структура, папка = урок (без промежуточного уровня blocks/)
-- Frontmatter внутри lesson.md вместо отдельного meta.json
-- quiz.json вместо questions.json (короче, понятнее)
-- Без index.json — список уроков строится динамически из файловой системы
-- Группировка по модулям (blocks/) добавляется позже, если уроков станет 15+
+- Структура 2 уровня: `content/{module}/{lesson}/` (модули введены раньше — на 7 уроках)
+- `module.json` в папке модуля — `{ title, description, order }`
+- Frontmatter внутри lesson.md — `{ title, description, order }`
+- `quiz.json` вместо questions.json (короче, понятнее)
+- Без index.json — модули и уроки строятся динамически из файловой системы
+- Slug урока — составной: `"01-javascript/04-closures-deep"` (хранится в БД, идёт в URL)
+- Роутинг — catch-all `/lessons/[...slug]`, склейка `params.slug.join("/")`
+- Карта будущих модулей и уроков — в `content/MAP.md`
 
 ### Визуальная архитектура (принято на неделе 1)
 
@@ -160,7 +163,8 @@ content/
 
 ```
 users
-  - id (telegram_id, PK)
+  - id (autoincrement PK)
+  - telegram_id (unique, BigInt)
   - first_name
   - username
   - language_code
@@ -168,6 +172,9 @@ users
   - current_streak
   - longest_streak
   - total_xp
+  - daily_goal       — порог дневной цели (по умолчанию 50)
+  - daily_xp         — набрано за сегодня
+  - daily_xp_date    — к какому дню относится daily_xp (для lazy reset)
   - last_activity_at
 
 lesson_progress
@@ -260,7 +267,7 @@ review_schedule
 
 **Контент:** ✅ Урок 4 «Архитектура fullstack-приложения» + квиз 14 вопросов (HMAC, ORM, upsert, синглтон, pooling, Zustand, tradeoffs).
 
-### 🔄 Неделя 3: Система обучения (в процессе)
+### ✅ Неделя 3: Система обучения
 
 **Технические задачи:**
 
@@ -269,22 +276,23 @@ review_schedule
 - ✅ Вкладки в уроке (Теория / Тест на одной странице, «← К урокам» для выхода)
 - ✅ Multiple choice вопросы (type: "multi", несколько правильных ответов, чекбоксы)
 - ✅ Порог 85% для COMPLETED (CASE в SQL, STARTED если ниже)
-- ⏳ Контент: 3-4 новых урока
-- ⏳ Блоки/модули — отложено до 15+ уроков
+- ✅ Контент: 3 новых урока — HMAC глубже, замыкания мидл+, микро/макрозадачи
+- ✅ Модули раньше срока (на 7 уроках вместо 15+): catch-all `[...slug]`, группировка по `module.json`, аккордеон в UI
 
-**Контент:** ✅ Multi-вопросы добавлены в уроки 01, 02, 04.
+**Контент:** ✅ Multi-вопросы в уроках 01, 02, 04. Структура переехала в модули `01-javascript/` и `05-this-project/`.
 
-### Неделя 4: Геймификация и привычка
+### ✅ Неделя 4: Геймификация и привычка
 
 **Технические задачи:**
 
-- Стрики (дни подряд) — логика подсчёта по lastActivityAt
-- XP и уровни
-- Дневная цель
-- Push-уведомления через Telegram-бота
-- «Точно хотите подсмотреть?» — диалог при переключении с теста на теорию, пометка «с читерством»
+- ✅ Стрики — расчёт `daysSince(lastActivityDay, today)` в `authenticateRequest`, throttle 1 час
+- ✅ XP и уровни — формула `level = √(xp/50)`, начисление **только за улучшение** результата (delta XP)
+- ✅ Дневная цель — `dailyXp/dailyGoal/dailyXpDate`, lazy reset при заходе в новый день
+- ✅ «Точно хотите подсмотреть?» — диалог + пометка `peekedAtTheory` на итоговом экране
+- ✅ Push-уведомления — Vercel Cron 18:00 UTC, три триггера с приоритетом (streak-at-risk / comeback / finish-goal), защита `CRON_SECRET`, обёртка `lib/telegram-bot.ts`
+- ✅ Фикс: `::int` и `::"LessonStatus"` casts в raw SQL под Prisma 7 + adapter-pg
 
-**Контент:** 10+ уроков, реально пользуюсь приложением сама.
+**Контент:** 7 уроков. Реально использую приложение для подготовки.
 
 ### Неделя 5-6: Spaced repetition и марафон
 
@@ -500,20 +508,32 @@ review_schedule
 - ✅ Code review + рефакторинг: pluralize, useProgress хук, api-client → lib/, throttle lastActivityAt
 - ✅ Урок 4 «Архитектура fullstack-приложения» + квиз (12 вопросов)
 
-**Неделя 3 — в процессе:**
+**Неделя 3 — завершена:**
 
 - ✅ Zustand: progress store + quiz store
 - ✅ Tab bar навигация (Главная / Уроки / Прогресс)
 - ✅ Вкладки Теория / Тест в уроке (quiz route удалён)
 - ✅ Multiple choice вопросы (type: "multi")
 - ✅ Порог 85% для COMPLETED
-- ✅ Multi-вопросы в уроках 01, 02, 04
-- ⏳ Контент: 3-4 новых урока
+- ✅ 3 новых урока по слабым темам (HMAC глубже, замыкания мидл+, микро/макрозадачи)
+- ✅ Модули раньше срока: 2-уровневая структура, catch-all `[...slug]`, аккордеон, `content/MAP.md`
 
-**Следующая сессия:**
+**Неделя 4 — завершена:**
 
-- Написать 3-4 урока по слабым темам (из Notes.md: event loop, HMAC, замыкания глубже)
-- Начать неделю 4 (геймификация, стрики, «подсмотреть»)
+- ✅ Стрики, XP, уровни, дневная цель
+- ✅ Lazy reset дневного XP при заходе в новый день
+- ✅ XP только за улучшение результата (delta), `{ increment }` атомарно
+- ✅ Диалог «подсмотреть?» при переключении с теста на теорию, пометка `peekedAtTheory`
+- ✅ Push через бота: `lib/telegram-bot.ts` + `lib/notifications.ts` + cron `/api/cron/daily-push`
+- ✅ Защита cron через `CRON_SECRET`, env `APP_URL` с `.trim()` против whitespace
+- ✅ Багфикс: explicit casts `::int` / `::"LessonStatus"` в raw SQL под Prisma 7 + adapter-pg
+
+**Следующая сессия (на выбор):**
+
+- Записать урок про raw SQL casts (`05-this-project/03-raw-sql-prisma-casts/`) — свежо, собесовая тема
+- Дописать модули `02-typescript`, `03-react`, `04-network-perf` (есть приоритеты в `content/MAP.md`)
+- Начать неделю 5-6 (spaced repetition SM-2, марафон 250 вопросов)
+- Полировка геймификации: открытые модули в localStorage, плавные анимации, edit dailyGoal в UI
 
 ---
 
