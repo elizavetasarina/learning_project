@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const appUrl = process.env.APP_URL ?? "";
+  const appUrl = (process.env.APP_URL ?? "").trim();
 
   const result = await sendMessage({
     chatId: user.telegramId,

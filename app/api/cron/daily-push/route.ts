@@ -67,7 +67,8 @@ export async function GET(request: Request) {
 
   // URL Mini App — кнопка в пуше будет открывать именно этот URL.
   // APP_URL должен быть задан в env (например https://itlearn.vercel.app).
-  const appUrl = process.env.APP_URL ?? "";
+  // .trim() — защита от случайных пробелов/табов при копировании в Vercel.
+  const appUrl = (process.env.APP_URL ?? "").trim();
 
   // Параллелим отправки, но с лимитом 10 одновременно — чтобы не упереться
   // в rate limit Bot API (30 сообщений/сек на всех пользователей).
