@@ -2,20 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Eye } from "lucide-react";
 import { LessonContent } from "./lesson-content";
 import { QuizView } from "./quiz-view";
+import { useQuizStore } from "@/store/quiz";
 import { pluralize } from "@/lib/pluralize";
 import type { Question } from "@/types/content";
 
 /**
  * Клиентский компонент — урок с вкладками Теория / Тест.
  *
- * Зачем вкладки вместо двух отдельных страниц:
- * 1. Переключение без перезагрузки — мгновенное
- * 2. Quiz state (в Zustand) переживает переключение на теорию и обратно
- * 3. Кнопка «← К урокам» всегда на месте — можно выйти из теста
- * 4. Контекст урока сохраняется — ты видишь название и номер
+ * Включает механику «подсмотреть»:
+ * Если юзер на вкладке Тест и переключается на Теорию —
+ * показываем диалог «Точно хотите подсмотреть?».
+ * Если да — помечаем тест как «с подсказкой» (peekedAtTheory).
+ * Диалог показывается только один раз за тест.
  */
 
 interface LessonViewProps {
@@ -38,7 +39,47 @@ export function LessonView({
   questions,
 }: LessonViewProps) {
   const [activeTab, setActiveTab] = useState<Tab>("theory");
+  const [showPeekDialog, setShowPeekDialog] = useState(false);
   const hasQuiz = questions.length > 0;
+
+  // Zustand: читаем состояние теста для определения, начат ли он
+  const currentIndex = useQuizStore((s) => s.currentIndex);
+  const peekDialogShown = useQuizStore((s) => s.peekDialogShown);
+  const isFinished = useQuizStore((s) => s.isFinished);
+  const markPeeked = useQuizStore((s) => s.markPeeked);
+
+  // Тест считается «начатым», если юзер ответил хотя бы на один вопрос
+  // или продвинулся дальше первого
+  const quizStarted = currentIndex > 0 || Object.keys(useQuizStore.getState().answers).length > 0;
+
+  function handleTheoryClick() {
+    // Показываем диалог только если:
+    // 1. Сейчас на вкладке Тест
+    // 2. Тест начат (есть ответы)
+    // 3. Тест не завершён
+    // 4. Диалог ещё не показывался
+    if (
+      activeTab === "quiz" &&
+      quizStarted &&
+      !isFinished &&
+      !peekDialogShown
+    ) {
+      setShowPeekDialog(true);
+      return;
+    }
+    setActiveTab("theory");
+  }
+
+  function handlePeekConfirm() {
+    markPeeked(); // peekedAtTheory = true, peekDialogShown = true
+    setShowPeekDialog(false);
+    setActiveTab("theory");
+  }
+
+  function handlePeekCancel() {
+    setShowPeekDialog(false);
+    // Остаёмся на тесте
+  }
 
   return (
     <div className="flex flex-1 flex-col">
@@ -65,7 +106,7 @@ export function LessonView({
           <div className="mt-5 flex gap-1 rounded-xl bg-secondary-bg p-1">
             <button
               type="button"
-              onClick={() => setActiveTab("theory")}
+              onClick={handleTheoryClick}
               className={`flex-1 rounded-lg py-2.5 text-[14px] font-medium transition-all ${
                 activeTab === "theory"
                   ? "bg-background text-foreground shadow-sm"
@@ -89,6 +130,42 @@ export function LessonView({
           </div>
         )}
       </div>
+
+      {/* ─── Диалог «подсмотреть» ─── */}
+      {showPeekDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/40 px-6">
+          <div className="w-full max-w-sm rounded-2xl bg-background p-6 shadow-xl">
+            <div className="flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-warning/10">
+                <Eye size={24} className="text-warning" />
+              </div>
+            </div>
+            <h2 className="mt-4 text-center text-[18px] font-bold">
+              Подсмотреть?
+            </h2>
+            <p className="mt-2 text-center text-[14px] leading-relaxed text-hint">
+              Точно хотите вернуться к теории? Тест будет помечен как
+              «пройден с подсказкой»
+            </p>
+            <div className="mt-5 flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={handlePeekConfirm}
+                className="h-12 rounded-xl bg-warning/10 font-semibold text-warning transition-all active:scale-[0.97]"
+              >
+                Да, подсмотрю
+              </button>
+              <button
+                type="button"
+                onClick={handlePeekCancel}
+                className="h-12 rounded-xl bg-accent font-semibold text-accent-text transition-all active:scale-[0.97]"
+              >
+                Нет, справлюсь сам
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Контент вкладки ─── */}
       {activeTab === "theory" ? (

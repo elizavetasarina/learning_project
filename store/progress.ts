@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { fetchProgress, saveProgress, type LessonProgressData } from "@/lib/api-client";
+import { fetchProgress, saveProgress, type LessonProgressData, type UserData } from "@/lib/api-client";
 
 /**
  * Progress Store — глобальное состояние прогресса пользователя.
@@ -17,6 +17,10 @@ import { fetchProgress, saveProgress, type LessonProgressData } from "@/lib/api-
 interface ProgressState {
   /** Map: lessonSlug → прогресс. null = ещё не загружали */
   progressMap: Map<string, LessonProgressData> | null;
+  /** Данные юзера: стрик, XP */
+  userData: UserData | null;
+  /** XP, полученный за последний save (для показа "+N XP" в quiz-view) */
+  lastXpEarned: number;
   /** Идёт ли загрузка */
   isLoading: boolean;
   /** Была ли ошибка */
@@ -36,6 +40,8 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
   (set, get) => ({
     // Начальное состояние
     progressMap: null,
+    userData: null,
+    lastXpEarned: 0,
     isLoading: false,
     error: null,
 
@@ -54,7 +60,7 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
         const map = new Map(
           result.data.progress.map((p) => [p.lessonSlug, p])
         );
-        set({ progressMap: map, isLoading: false });
+        set({ progressMap: map, userData: result.data.user, isLoading: false });
       } else {
         set({ error: result.error, isLoading: false });
       }
@@ -75,14 +81,25 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
           status: result.data.progress.status,
           bestScore: result.data.progress.bestScore,
           attemptsCount: result.data.progress.attemptsCount,
-          // Сохраняем существующие даты или ставим текущую
           startedAt: existing?.startedAt ?? new Date().toISOString(),
           completedAt: new Date().toISOString(),
         });
 
-        // new Map() чтобы React увидел изменение (Map мутабельный,
-        // Zustand сравнивает по ===, поэтому нужна новая ссылка)
-        set({ progressMap: new Map(currentMap) });
+        // Обновляем XP локально: totalXp и dailyXp + дельта из ответа
+        const prevUser = get().userData;
+        const updatedUser = prevUser
+          ? {
+              ...prevUser,
+              totalXp: prevUser.totalXp + result.data.xpEarned,
+              dailyXp: prevUser.dailyXp + result.data.xpEarned,
+            }
+          : null;
+
+        set({
+          progressMap: new Map(currentMap),
+          userData: updatedUser,
+          lastXpEarned: result.data.xpEarned,
+        });
         return true;
       }
 

@@ -34,7 +34,17 @@ export async function GET(request: Request) {
       },
     });
 
-    return NextResponse.json({ progress });
+    return NextResponse.json({
+      progress,
+      // Данные юзера: стрик, XP — для главной и прогресса
+      user: {
+        currentStreak: auth.user.currentStreak,
+        longestStreak: auth.user.longestStreak,
+        totalXp: auth.user.totalXp,
+        dailyXp: auth.user.dailyXp,
+        dailyGoal: auth.user.dailyGoal,
+      },
+    });
   } catch (error) {
     console.error("GET /api/progress error:", error);
     return NextResponse.json(
@@ -110,6 +120,13 @@ export async function POST(request: Request) {
     // При INSERT: просто проверяем $3 (score). При UPDATE: GREATEST из старого и нового.
     const PASS_THRESHOLD = 85;
 
+    // Сначала получаем старый best_score (для расчёта XP)
+    const existing = await prisma.lessonProgress.findUnique({
+      where: { userId_lessonSlug: { userId: auth.user.id, lessonSlug } },
+      select: { bestScore: true },
+    });
+    const oldBestScore = existing?.bestScore ?? 0;
+
     const [progress] = await prisma.$queryRawUnsafe<
       Array<{
         lesson_slug: string;
@@ -141,7 +158,34 @@ export async function POST(request: Request) {
       PASS_THRESHOLD
     );
 
-    // lastActivityAt обновляется в authenticateRequest() с throttle — не дублируем.
+    // ─── XP: начисляем за тест ──────────────────────────────
+    // Формула: кол-во вопросов × 10 × (score / 100)
+    // XP начисляется только за УЛУЧШЕНИЕ результата.
+    // Если был 60%, стал 80% → получаешь разницу в XP.
+    // Если был 80%, стал 60% → 0 XP (GREATEST не дал ухудшить best_score).
+    const newBestScore = progress.best_score ?? 0;
+    let xpEarned = 0;
+
+    if (newBestScore > oldBestScore) {
+      const { getQuestions } = await import("@/lib/lessons");
+      const questions = await getQuestions(lessonSlug);
+      const questionCount = questions.length || 1;
+
+      const XP_PER_QUESTION = 10;
+      const newXp = Math.round(questionCount * XP_PER_QUESTION * (newBestScore / 100));
+      const oldXp = Math.round(questionCount * XP_PER_QUESTION * (oldBestScore / 100));
+      xpEarned = newXp - oldXp;
+
+      if (xpEarned > 0) {
+        await prisma.user.update({
+          where: { id: auth.user.id },
+          data: {
+            totalXp: { increment: xpEarned },
+            dailyXp: { increment: xpEarned },
+          },
+        });
+      }
+    }
 
     return NextResponse.json({
       progress: {
@@ -150,6 +194,7 @@ export async function POST(request: Request) {
         bestScore: progress.best_score,
         attemptsCount: progress.attempts_count,
       },
+      xpEarned,
     });
   } catch (error) {
     console.error("POST /api/progress error:", error);

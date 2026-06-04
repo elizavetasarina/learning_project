@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { CheckCircle, XCircle, Home, RotateCcw, BookOpen } from "lucide-react";
 import type { Question } from "@/types/content";
+import { Zap } from "lucide-react";
 import { useQuizStore } from "@/store/quiz";
 import { useProgressStore } from "@/store/progress";
 
@@ -28,6 +29,7 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
   const showResult = useQuizStore((s) => s.showResult);
   const correctCount = useQuizStore((s) => s.correctCount);
   const isFinished = useQuizStore((s) => s.isFinished);
+  const peekedAtTheory = useQuizStore((s) => s.peekedAtTheory);
 
   // Actions
   const init = useQuizStore((s) => s.init);
@@ -37,8 +39,9 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
   const next = useQuizStore((s) => s.next);
   const retry = useQuizStore((s) => s.retry);
 
-  // Progress store — для сохранения результата
+  // Progress store — для сохранения результата и показа XP
   const saveToServer = useProgressStore((s) => s.save);
+  const lastXpEarned = useProgressStore((s) => s.lastXpEarned);
 
   // Инициализация: если slug изменился или тест завершён — сбросить
   useEffect(() => { init(slug); }, [slug, init]);
@@ -125,6 +128,19 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
           <p className="mt-2 text-[14px] text-hint">
             {correctCount} из {questions.length} правильных ответов
           </p>
+          {peekedAtTheory && (
+            <p className="mt-1.5 text-[13px] text-warning">
+              👀 Пройдено с подсказкой
+            </p>
+          )}
+          {lastXpEarned > 0 && (
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5">
+              <Zap size={16} className="text-accent" />
+              <span className="text-[14px] font-semibold text-accent">
+                +{lastXpEarned} XP
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Кнопки */}

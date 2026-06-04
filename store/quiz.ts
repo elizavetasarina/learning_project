@@ -27,6 +27,10 @@ interface QuizState {
   correctCount: number;
   /** Тест завершён — показывается итоговый экран */
   isFinished: boolean;
+  /** Юзер подсматривал теорию во время теста */
+  peekedAtTheory: boolean;
+  /** Диалог «подсмотреть» уже показывался (показываем только раз за тест) */
+  peekDialogShown: boolean;
 }
 
 interface QuizActions {
@@ -42,6 +46,8 @@ interface QuizActions {
   next: (isLast: boolean) => void;
   /** Начать тест заново */
   retry: () => void;
+  /** Пометить, что юзер подсмотрел теорию */
+  markPeeked: () => void;
 }
 
 // ─── Store ──────────────────────────────────────────────────
@@ -53,6 +59,8 @@ const initialState: QuizState = {
   showResult: false,
   correctCount: 0,
   isFinished: false,
+  peekedAtTheory: false,
+  peekDialogShown: false,
 };
 
 export const useQuizStore = create<QuizState & QuizActions>((set, get) => ({
@@ -104,5 +112,9 @@ export const useQuizStore = create<QuizState & QuizActions>((set, get) => ({
   retry: () => {
     const slug = get().slug;
     set({ ...initialState, slug });
+  },
+
+  markPeeked: () => {
+    set({ peekedAtTheory: true, peekDialogShown: true });
   },
 }));

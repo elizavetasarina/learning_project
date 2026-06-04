@@ -23,6 +23,9 @@ model User {
   currentStreak  Int      @default(0) @map("current_streak")
   longestStreak  Int      @default(0) @map("longest_streak")
   totalXp        Int      @default(0) @map("total_xp")
+  dailyGoal      Int      @default(50) @map("daily_goal")
+  dailyXp        Int      @default(0) @map("daily_xp")
+  dailyXpDate    DateTime? @map("daily_xp_date")
   lastActivityAt DateTime? @map("last_activity_at")
 
   // Связь один-ко-многим: у юзера много записей прогресса

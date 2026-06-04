@@ -61,9 +61,19 @@ export interface LessonProgressData {
   completedAt: string | null;
 }
 
+/** Данные юзера из API */
+export interface UserData {
+  currentStreak: number;
+  longestStreak: number;
+  totalXp: number;
+  dailyXp: number;
+  dailyGoal: number;
+}
+
 /** Ответ GET /api/progress */
 interface ProgressResponse {
   progress: LessonProgressData[];
+  user: UserData;
 }
 
 /** Ответ POST /api/progress */
@@ -74,6 +84,8 @@ interface SaveProgressResponse {
     bestScore: number | null;
     attemptsCount: number;
   };
+  /** XP, заработанный за это прохождение (0 если не улучшил результат) */
+  xpEarned: number;
 }
 
 // ─── Экспортируемые функции ─────────────────────────────────

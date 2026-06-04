@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Flame, BookOpen, ChevronRight, Trophy } from "lucide-react";
+import { Flame, BookOpen, ChevronRight, Trophy, Zap, Target, Check } from "lucide-react";
 import { useTelegram } from "@/hooks/use-telegram";
 import { useProgressStore } from "@/store/progress";
+import { getLevel, getLevelProgress, xpForLevel } from "@/lib/xp";
 import { WeekStreak } from "./week-streak";
 import type { LessonMeta } from "@/types/content";
 
@@ -18,6 +19,7 @@ export function HomeContent({ lessons }: HomeContentProps) {
 
   // Zustand: точечная подписка — перерендер только если progressMap изменился
   const progressMap = useProgressStore((s) => s.progressMap);
+  const userData = useProgressStore((s) => s.userData);
   const load = useProgressStore((s) => s.load);
 
   // Загружаем прогресс при первом рендере (load внутри проверяет: если уже загружен — пропускает)
@@ -38,9 +40,11 @@ export function HomeContent({ lessons }: HomeContentProps) {
   const nextLesson =
     lessons.find((l) => !progressMap?.has(l.slug)) ?? lessons[0] ?? null;
 
-  // Стрик — пока заглушка (нужна логика подсчёта по lastActivityAt,
-  // реализуем на неделе 4 — геймификация). Показываем 0 если нет данных.
-  const streak = { current: 0, best: 0 };
+  // Стрик из API (считается на сервере в authenticateRequest)
+  const streak = {
+    current: userData?.currentStreak ?? 0,
+    best: userData?.longestStreak ?? 0,
+  };
 
   return (
     <main className="flex flex-1 flex-col gap-6 px-4 pb-24 pt-6">
@@ -54,6 +58,14 @@ export function HomeContent({ lessons }: HomeContentProps) {
 
       {/* Трекер недели — стрик */}
       <WeekStreak currentStreak={streak.current} />
+
+      {/* Уровень и XP */}
+      {userData && <XpCard totalXp={userData.totalXp} />}
+
+      {/* Дневная цель */}
+      {userData && (
+        <DailyGoalCard dailyXp={userData.dailyXp} dailyGoal={userData.dailyGoal} />
+      )}
 
       {/* Карточка "Продолжить обучение" */}
       {nextLesson && (
@@ -92,5 +104,71 @@ export function HomeContent({ lessons }: HomeContentProps) {
       </div>
 
     </main>
+  );
+}
+
+// ─── Дневная цель ───────────────────────────────────────────
+
+function DailyGoalCard({ dailyXp, dailyGoal }: { dailyXp: number; dailyGoal: number }) {
+  const reached = dailyXp >= dailyGoal;
+  const percent = Math.min(Math.round((dailyXp / dailyGoal) * 100), 100);
+
+  return (
+    <div className="rounded-xl bg-secondary-bg p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {reached ? (
+            <Check size={18} className="text-success" />
+          ) : (
+            <Target size={18} className="text-warning" />
+          )}
+          <span className="text-sm font-semibold">
+            {reached ? "Цель выполнена!" : "Цель на сегодня"}
+          </span>
+        </div>
+        <span className="text-xs text-hint">
+          {dailyXp} / {dailyGoal} XP
+        </span>
+      </div>
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-foreground/10">
+        <div
+          className={`h-full rounded-full transition-all duration-500 ${
+            reached
+              ? "bg-success"
+              : "bg-gradient-to-r from-warning to-warning/70"
+          }`}
+          style={{ width: `${percent}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── XP-карточка ────────────────────────────────────────────
+
+function XpCard({ totalXp }: { totalXp: number }) {
+  const level = getLevel(totalXp);
+  const progress = getLevelProgress(totalXp);
+  const nextLevelXp = xpForLevel(level + 1);
+
+  return (
+    <div className="rounded-xl bg-secondary-bg p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Zap size={18} className="text-accent" />
+          <span className="text-sm font-semibold">Уровень {level}</span>
+        </div>
+        <span className="text-xs text-hint">
+          {totalXp} / {nextLevelXp} XP
+        </span>
+      </div>
+      {/* Прогресс-бар до следующего уровня */}
+      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-foreground/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-accent to-accent-light transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
   );
 }

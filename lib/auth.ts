@@ -1,6 +1,21 @@
 import { validateInitData } from "./telegram-auth";
 import { prisma } from "./prisma";
 
+// ─── Хелперы для дат ────────────────────────────────────────
+
+/** Обнуляем часы/минуты/секунды — получаем начало дня в UTC */
+function startOfDayUTC(date: Date): Date {
+  const d = new Date(date);
+  d.setUTCHours(0, 0, 0, 0);
+  return d;
+}
+
+/** Разница в днях между двумя датами (обе должны быть началом дня) */
+function daysBetween(a: Date, b: Date): number {
+  const MS_PER_DAY = 24 * 60 * 60 * 1000;
+  return Math.round((b.getTime() - a.getTime()) / MS_PER_DAY);
+}
+
 /**
  * Тип пользователя, выведенный из Prisma-схемы.
  * Awaited<ReturnType<...>> — берём тип возврата prisma.user.upsert().
@@ -75,20 +90,63 @@ export async function authenticateRequest(
       },
     });
 
-    // Обновляем lastActivityAt с throttle: не чаще раза в час.
-    // Без throttle каждый API-запрос (а их 2-3 при открытии страницы)
-    // делал бы лишний UPDATE. С throttle — максимум 1 UPDATE в час.
+    // Обновляем активность и стрик с throttle: не чаще раза в час.
     const ONE_HOUR = 60 * 60 * 1000;
     const lastActivity = user.lastActivityAt?.getTime() ?? 0;
+
     if (Date.now() - lastActivity > ONE_HOUR) {
-      // fire-and-forget: не ждём результат, не блокируем ответ.
-      // Если UPDATE упадёт — не страшно, обновится при следующем запросе.
+      // Считаем стрик: сравниваем дату последней активности с сегодня.
+      // Все даты приводим к началу дня (UTC) для корректного сравнения.
+      const today = startOfDayUTC(new Date());
+      const lastDay = user.lastActivityAt
+        ? startOfDayUTC(user.lastActivityAt)
+        : null;
+
+      let newStreak = user.currentStreak;
+
+      if (!lastDay) {
+        // Первый визит — стрик = 1
+        newStreak = 1;
+      } else {
+        const diffDays = daysBetween(lastDay, today);
+        if (diffDays === 0) {
+          // Тот же день — стрик не меняется
+        } else if (diffDays === 1) {
+          // Следующий день — стрик растёт
+          newStreak = user.currentStreak + 1;
+        } else {
+          // Пропуск 2+ дней — стрик сброшен, начинаем с 1
+          newStreak = 1;
+        }
+      }
+
+      const newLongest = Math.max(newStreak, user.longestStreak);
+
+      // Сброс дневного XP: если dailyXpDate не сегодня — обнуляем
+      const dailyXpDay = user.dailyXpDate
+        ? startOfDayUTC(user.dailyXpDate)
+        : null;
+      const isNewDay = !dailyXpDay || daysBetween(dailyXpDay, today) > 0;
+      const newDailyXp = isNewDay ? 0 : user.dailyXp;
+
+      // fire-and-forget: не блокируем ответ
       prisma.user
         .update({
           where: { id: user.id },
-          data: { lastActivityAt: new Date() },
+          data: {
+            lastActivityAt: new Date(),
+            currentStreak: newStreak,
+            longestStreak: newLongest,
+            ...(isNewDay && { dailyXp: 0, dailyXpDate: new Date() }),
+          },
         })
         .catch(() => {});
+
+      // Обновляем объект user для текущего ответа
+      user.currentStreak = newStreak;
+      user.longestStreak = newLongest;
+      user.dailyXp = newDailyXp;
+      user.lastActivityAt = new Date();
     }
 
     return { ok: true, user };
