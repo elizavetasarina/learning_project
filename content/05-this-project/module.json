@@ -1,0 +1,5 @@
+{
+  "title": "Архитектура этого проекта",
+  "description": "Разбор твоего кода как для собеса: HMAC, Prisma, stateless, Zustand",
+  "order": 5
+}

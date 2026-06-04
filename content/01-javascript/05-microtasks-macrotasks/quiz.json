@@ -1,0 +1,183 @@
+[
+  {
+    "id": "evloop-q1",
+    "type": "choice",
+    "question": "Что выведет этот код?\n\nconsole.log('1');\nsetTimeout(() => console.log('2'), 0);\nPromise.resolve().then(() => console.log('3'));\nconsole.log('4');",
+    "options": [
+      "1 2 3 4",
+      "1 3 4 2",
+      "1 4 3 2",
+      "1 4 2 3"
+    ],
+    "correct": 2,
+    "explanation": "Сначала синхронный код: 1, 4. Затем event loop опустошает очередь МИКРОтасок: 3 (Promise.then). Только потом первая МАКРОтаска: 2 (setTimeout). Между макротасками всегда выполняются все микротаски."
+  },
+  {
+    "id": "evloop-q2",
+    "type": "choice",
+    "question": "Почему Promise.then выполняется раньше setTimeout(fn, 0)?",
+    "options": [
+      "Promise быстрее по реализации",
+      "Они в разных очередях: Promise.then — микротаска, setTimeout — макротаска. Очередь микротасок имеет приоритет",
+      "setTimeout всегда ждёт минимум 4 мс",
+      "Promise выполняется синхронно"
+    ],
+    "correct": 1,
+    "explanation": "Это две разные очереди. Между двумя макротасками event loop ПОЛНОСТЬЮ опустошает очередь микротасок. Поэтому даже если setTimeout поставлен раньше, его колбэк ждёт всех микротасок."
+  },
+  {
+    "id": "evloop-q3",
+    "type": "choice",
+    "question": "Что из этого создаёт МАКРОтаску?",
+    "options": [
+      "Promise.resolve().then(fn)",
+      "queueMicrotask(fn)",
+      "setTimeout(fn, 0)",
+      "await Promise.resolve()"
+    ],
+    "correct": 2,
+    "explanation": "Макротаски: setTimeout, setInterval, обработчики DOM-событий, I/O в Node. Микротаски: Promise.then/catch/finally, queueMicrotask, MutationObserver, await (это сахар над then)."
+  },
+  {
+    "id": "evloop-q4",
+    "type": "choice",
+    "question": "Что выведет:\n\nasync function foo() {\n  console.log('1');\n  await Promise.resolve();\n  console.log('2');\n}\nfoo();\nconsole.log('3');",
+    "options": [
+      "1 2 3",
+      "1 3 2",
+      "3 1 2",
+      "1 3 then 2 на следующем тике"
+    ],
+    "correct": 1,
+    "explanation": "await — синтаксический сахар над .then. Код после await становится колбэком .then, то есть микротаской. Поэтому: 1 (синхронно из foo), 3 (синхронно после вызова foo), 2 (микротаска после стека)."
+  },
+  {
+    "id": "evloop-q5",
+    "type": "input",
+    "question": "Как называется механизм, который перекладывает колбэки из очередей в стек, когда стек пуст?",
+    "answer": "event loop",
+    "explanation": "Event loop — координатор между стеком и очередями. Он не выполняет код сам, а только перекладывает задачи. JS остаётся однопоточным — параллелизм даёт окружение (Web API в браузере, libuv в Node)."
+  },
+  {
+    "id": "evloop-q6",
+    "type": "choice",
+    "question": "Что выведет:\n\nsetTimeout(() => {\n  console.log('A');\n  Promise.resolve().then(() => console.log('B'));\n}, 0);\nsetTimeout(() => console.log('C'), 0);",
+    "options": [
+      "A B C",
+      "A C B",
+      "C A B",
+      "Зависит от браузера"
+    ],
+    "correct": 0,
+    "explanation": "Сначала первая макротаска: A. Прежде чем брать следующую макротаску, event loop опустошит микротаски — выведет B. Только потом следующая макротаска: C. Если бы микротаски не выполнялись между макротасками, было бы A C B."
+  },
+  {
+    "id": "evloop-q7",
+    "type": "choice",
+    "question": "Что такое microtask starvation?",
+    "options": [
+      "Когда микротасок слишком мало",
+      "Когда бесконечная цепочка микротасок не даёт выполниться макротаскам и рендеру",
+      "Когда JS-движок зависает на одной микротаске",
+      "Когда Promise отвергнут без catch"
+    ],
+    "correct": 1,
+    "explanation": "Микротаски выполняются ВСЕ перед следующей макротаской. Если внутри микротаски постоянно ставить новую микротаску (например, рекурсивный .then без условия выхода) — макротаски и рендер никогда не выполнятся. В браузере это фриз страницы."
+  },
+  {
+    "id": "evloop-q8",
+    "type": "input",
+    "question": "Какая функция позволяет поставить колбэк в очередь МИКРОтасок без создания Promise?",
+    "answer": "queueMicrotask",
+    "explanation": "queueMicrotask(fn) — стандартный браузерный API. Эквивалент Promise.resolve().then(fn), но без аллокации промиса. Используется в либах для defer без перфоманс-овэрхеда. В Node есть ещё process.nextTick — приоритетнее микротасок."
+  },
+  {
+    "id": "evloop-q9",
+    "type": "choice",
+    "question": "setTimeout(fn, 0) — почему колбэк не выполняется мгновенно?",
+    "options": [
+      "Браузер всегда ждёт минимум 1 мс",
+      "Колбэк должен пройти через очередь макротасок, а очередь обрабатывается только когда стек пуст и микротаски опустошены",
+      "Это баг V8",
+      "fn не функция, а строка"
+    ],
+    "correct": 1,
+    "explanation": "setTimeout не выполняет колбэк сразу. Он передаёт колбэк в Web API, тот через таймер кладёт в очередь макротасок. Колбэк выполнится, когда event loop возьмёт его из очереди — а это произойдёт только после пустоты стека и опустошения микротасок."
+  },
+  {
+    "id": "evloop-q10",
+    "type": "multi",
+    "question": "Что из перечисленного — микротаски?",
+    "options": [
+      "Колбэк Promise.then",
+      "queueMicrotask",
+      "setTimeout с задержкой 0",
+      "MutationObserver",
+      "Код после await",
+      "requestAnimationFrame"
+    ],
+    "correct": [0, 1, 3, 4],
+    "explanation": "Микротаски: Promise.then/catch/finally, queueMicrotask, MutationObserver, await (=then). setTimeout — макротаска. requestAnimationFrame — особая очередь, синхронизированная с рендером, не относится ни к микро, ни к классическим макро."
+  },
+  {
+    "id": "evloop-q11",
+    "type": "choice",
+    "question": "Что выведет:\n\nconsole.log('A');\nPromise.resolve().then(() => {\n  console.log('B');\n  Promise.resolve().then(() => console.log('C'));\n});\nPromise.resolve().then(() => console.log('D'));\nconsole.log('E');",
+    "options": [
+      "A E B D C",
+      "A E B C D",
+      "A B D C E",
+      "A E B C затем D"
+    ],
+    "correct": 0,
+    "explanation": "Синхронно: A, E. Очередь микротасок: [B-then, D-then]. Берём B → ставит новую микротаску [C-then]. Берём D. Берём C. Итог: A E B D C. Новые микротаски, поставленные внутри микротасок, выполняются в порядке постановки, после уже стоящих в очереди."
+  },
+  {
+    "id": "evloop-q12",
+    "type": "choice",
+    "question": "Зачем разбивать тяжёлую работу через setTimeout(0)?",
+    "options": [
+      "Чтобы JS работал быстрее",
+      "Чтобы вернуть управление event loop'у: между макротасками браузер успевает отрендерить, обработать события, выполнить микротаски. Без этого страница фризится",
+      "setTimeout(0) обходит ограничения движка",
+      "Это требование стандарта ES6"
+    ],
+    "correct": 1,
+    "explanation": "Long task (>50ms) в одном куске блокирует рендер, скролл, клики. Разбиение через setTimeout(0) даёт event loop'у обработать рендер и события между чанками. Современный аналог — scheduler.yield() или requestIdleCallback для некритичных задач."
+  },
+  {
+    "id": "evloop-q13",
+    "type": "input",
+    "question": "Как называется браузерный API для запуска колбэка перед следующим кадром рендеринга (60 раз в секунду)?",
+    "answer": "requestAnimationFrame",
+    "explanation": "requestAnimationFrame синхронизирован с частотой кадров монитора (обычно 60Hz). Колбэк вызывается перед перерисовкой. Используется для анимаций — позволяет браузеру оптимизировать (например, не дёргать на скрытых вкладках). НЕ микротаска и НЕ обычная макротаска — отдельная очередь."
+  },
+  {
+    "id": "evloop-q14",
+    "type": "choice",
+    "question": "Почему 'while (true) {}' вешает вкладку?",
+    "options": [
+      "Бесконечно выделяется память",
+      "Стек не очищается → event loop не может взять из очереди микротаски и макротаски → не выполняются обработчики событий, рендер, ничего",
+      "Браузер автоматически останавливает такие циклы",
+      "Память переполняется"
+    ],
+    "correct": 1,
+    "explanation": "Пока стек не пуст, event loop не имеет права брать задачи из очередей. Бесконечный цикл держит стек заполненным навсегда. Все колбэки (клики, рендер, таймеры) копятся в очереди — но не выполняются. Вкладка не реагирует."
+  },
+  {
+    "id": "evloop-q15",
+    "type": "multi",
+    "question": "Что НЕ является частью JavaScript-движка (V8), а предоставляется окружением (Web API в браузере, libuv в Node)?",
+    "options": [
+      "setTimeout / setInterval",
+      "fetch",
+      "DOM API (document.querySelector)",
+      "Promise",
+      "Обработчики событий (addEventListener)",
+      "Array.prototype.map"
+    ],
+    "correct": [0, 1, 2, 4],
+    "explanation": "В движок V8 входят: ECMAScript-фичи (Promise, async/await, Array методы, замыкания). НЕ входят: таймеры, fetch, DOM, события — это Web API браузера. В Node таймеры и I/O даёт libuv. Movement: «почему JS однопоточный, но fetch не блокирует?» — потому что fetch выполняется НЕ в движке."
+  }
+]
