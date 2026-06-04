@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { CheckCircle, XCircle, Home, RotateCcw, BookOpen } from "lucide-react";
 import type { Question } from "@/types/content";
@@ -42,6 +42,10 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
   // Progress store — для сохранения результата и показа XP
   const saveToServer = useProgressStore((s) => s.save);
   const lastXpEarned = useProgressStore((s) => s.lastXpEarned);
+
+  // Локальная ошибка сохранения — для отображения юзеру
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Инициализация: если slug изменился или тест завершён — сбросить
   useEffect(() => { init(slug); }, [slug, init]);
@@ -87,11 +91,20 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
     check(checkIsCorrect());
   }
 
-  function handleNext() {
+  async function handleNext() {
     if (isLast) {
-      // Считаем процент и сохраняем через progress store
+      // Считаем процент и сохраняем через progress store.
+      // Важно дождаться save: иначе bg-данные (XP, status) не успевают
+      // дойти, и юзер видит «+0 XP» на итоговом экране.
       const percentage = Math.round((correctCount / questions.length) * 100);
-      saveToServer(slug, percentage);
+      setIsSaving(true);
+      setSaveError(null);
+      const ok = await saveToServer(slug, percentage);
+      setIsSaving(false);
+      if (!ok) {
+        setSaveError("Не удалось сохранить результат. Проверь связь и попробуй снова.");
+        return; // не переходим на финальный экран, чтобы юзер не потерял шанс retry
+      }
     }
     next(isLast);
   }
@@ -338,13 +351,21 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
             Проверить
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={handleNext}
-            className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-text transition-all active:scale-[0.97]"
-          >
-            {isLast ? "Завершить тест" : "Следующий вопрос"}
-          </button>
+          <>
+            {saveError && (
+              <p className="mb-3 rounded-lg bg-error/10 px-3 py-2 text-[13px] text-error">
+                {saveError}
+              </p>
+            )}
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={handleNext}
+              className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-text transition-all disabled:opacity-60 active:scale-[0.97]"
+            >
+              {isSaving ? "Сохраняем..." : isLast ? "Завершить тест" : "Следующий вопрос"}
+            </button>
+          </>
         )}
       </div>
     </div>

@@ -37,15 +37,27 @@ async function apiRequest<T>(
       },
     });
 
-    const json = await response.json();
+    const json = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      return { ok: false, error: json.error || "Request failed" };
+      // Логируем для диагностики: какой статус и что вернул сервер
+      console.error(
+        `[api] ${options.method ?? "GET"} ${url} → ${response.status}`,
+        json,
+      );
+      return {
+        ok: false,
+        error: json.error || `HTTP ${response.status}`,
+      };
     }
 
     return { ok: true, data: json as T };
-  } catch {
-    return { ok: false, error: "Network error" };
+  } catch (err) {
+    console.error(`[api] ${options.method ?? "GET"} ${url} threw:`, err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Network error",
+    };
   }
 }
 
