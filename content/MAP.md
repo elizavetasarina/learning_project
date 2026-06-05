@@ -113,6 +113,7 @@
 | 09 | Raw SQL в Prisma 7: type casts `::int`, `::"LessonStatus"` (тот баг) | ⏳ |
 | 10 | IANA timezones: UTC в БД, Intl.DateTimeFormat, X-Timezone header | ⏳ |
 | 11 | Push через Telegram Bot API: cron-secret, web_app кнопка, rate limit | ⏳ |
+| 12 | Spaced repetition: SM-2, кривая забывания, eager-init, fire-and-forget answers | ⏳ |
 | 09 | Content-as-code: уроки как файлы, не как БД-записи | 💡 |
 | 10 | Структура папок: lib vs hooks vs components — правила | 💡 |
 

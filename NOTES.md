@@ -111,6 +111,19 @@
 | Raw SQL casts | `::int`, `::"LessonStatus"`, почему Postgres не кастит implicit в VALUES | /10 |
 | Таймзоны IANA | `Intl.DateTimeFormat`, UTC в БД vs локальный день, X-Timezone header | /10 |
 
+### Неделя 5-6: Spaced repetition (MVP готов)
+
+| Что сделано | Ключевые понятия | Моя оценка |
+|---|---|---|
+| Кривая забывания и SR | Эббингауз, экспоненциальное забывание, повторение перед "вот-вот забуду" | /10 |
+| Leitner vs SM-2 | Дискретные коробки vs адаптивный EF, история SuperMemo | /10 |
+| SM-2 формула | easeFactor, intervalDays, repetitions, MIN_EF=1.3, почему EF не падает на ошибке | /10 |
+| Единица повтора = вопрос | Атом памяти, естественная поддержка марафона | /10 |
+| Eager-init + createMany skipDuplicates | Идемпотентность, INSERT...ON CONFLICT DO NOTHING под капотом | /10 |
+| Группировка чтения файлов | Избегаем N+1, Map для O(1) lookup по questionId | /10 |
+| Fire-and-forget answers | Оптимистичное UI, самокомпенсация (упало → завтра покажем) | /10 |
+| State machine в ReviewView | loading/empty/active/finished — 4 явные ветки рендера | /10 |
+
 ---
 
 ## Теория для изучения (по неделям)

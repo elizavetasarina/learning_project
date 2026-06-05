@@ -197,13 +197,18 @@ question_attempts
   - attempted_at
   - time_spent_seconds
 
--- Позже, для spaced repetition:
 review_schedule
-  - user_id
+  - id (autoincrement PK)
+  - user_id (FK)
   - lesson_slug
-  - next_review_at
-  - ease_factor
-  - interval_days
+  - question_id        — id из quiz.json
+  - ease_factor        — SM-2 «лёгкость» (Float, начало 2.5, минимум 1.3)
+  - interval_days      — через сколько дней показать
+  - repetitions        — подряд правильных
+  - next_review_at     — когда показать (default now() — eager-init попадает сразу в выдачу)
+  - last_reviewed_at
+  - UNIQUE (user_id, lesson_slug, question_id)
+  - INDEX (user_id, next_review_at)  — для запроса "что повторить сегодня"
 ```
 
 ### Чего НЕ делаем (явный список)
@@ -296,15 +301,20 @@ review_schedule
 
 **Контент:** 7 уроков. Реально использую приложение для подготовки.
 
-### Неделя 5-6: Spaced repetition и марафон
+### 🔄 Неделя 5-6: Spaced repetition и марафон
 
 **Технические задачи:**
 
-- Алгоритм spaced repetition (SM-2)
-- Экран "Повторить"
-- Статистика по темам
-- Марафон: вкладка с 250 вопросами по собеседованиям (рандомная выборка, таймер)
-- Опционально: экспорт прогресса
+- ✅ Схема `review_schedule` (SM-2 state: easeFactor, intervalDays, repetitions, nextReviewAt)
+- ✅ `lib/sr.ts` — `nextSRState()` чистая SM-2 функция
+- ✅ Eager-init: `POST /api/reviews/init` при открытии урока (createMany + skipDuplicates)
+- ✅ SR-обновление в `POST /api/progress`: после теста каждый вопрос пересчитывается
+- ✅ `GET /api/reviews/due` + жёлтая карточка «К повтору: N» на главной
+- ✅ `GET /api/reviews/session` (полные данные вопросов) + `POST /api/reviews/answer` (один ответ)
+- ✅ Страница `/review` — клиентский квиз-флоу с финальной статистикой
+- ⏳ Статистика по темам
+- ⏳ Марафон 250 вопросов (рандомная выборка без SR)
+- ⏳ Опционально: экспорт прогресса
 
 **Контент:** 20+ уроков, полноценный курс.
 
@@ -531,11 +541,20 @@ review_schedule
 - ✅ Багфикс: explicit casts `::int` / `::"LessonStatus"` в raw SQL под Prisma 7 + adapter-pg
 - ✅ Таймзоны юзера: `X-Timezone` header, `users.timezone` (IANA), `lib/datetime.ts` (`startOfDayInTz`, `daysBetweenInTz`). Стрики и dailyXp считаются в локальном дне юзера, не UTC. Миграция БД сделана руками через Supabase SQL Editor (Free tier не даёт direct connection)
 
+**Неделя 5-6 MVP — готово:**
+
+- ✅ Полный цикл SR работает: проходишь тест → SR обновляется → завтра видишь карточку «К повтору» → отвечаешь → правильные уходят на 6 дней
+- ✅ SM-2 формула в `lib/sr.ts` (чистая функция)
+- ✅ Eager-init записей при открытии урока (idempotent через `createMany skipDuplicates`)
+- ✅ Lookup групп файлов через Map — избегаем N+1 при чтении уроков из FS
+
 **Следующая сессия (на выбор):**
 
-- Записать урок про raw SQL casts (`05-this-project/03-raw-sql-prisma-casts/`) — свежо, собесовая тема
+- Записать урок про SM-2 и SR в `05-this-project` — свежо, собесовая тема
+- Записать урок про raw SQL casts (`05-this-project/03-raw-sql-prisma-casts/`)
+- Записать урок про IANA timezones + Intl.DateTimeFormat
+- Доделать неделю 5-6: статистика по темам, марафон 250 вопросов
 - Дописать модули `02-typescript`, `03-react`, `04-network-perf` (есть приоритеты в `content/MAP.md`)
-- Начать неделю 5-6 (spaced repetition SM-2, марафон 250 вопросов)
 - Полировка геймификации: открытые модули в localStorage, плавные анимации, edit dailyGoal в UI
 
 ---
