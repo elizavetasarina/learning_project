@@ -92,6 +92,24 @@
 | Multiple choice (type: "multi") | correct: number[], toggleMultiAnswer, сравнение массивов | /10 |
 | Порог 85% для COMPLETED | CASE WHEN в SQL, COALESCE для completedAt | /10 |
 | Удаление старого quiz route | Миграция с отдельной страницы на вкладки | /10 |
+| HMAC глубже | Подпись vs шифрование, key derivation, replay attack, slug-cutoff | /10 |
+| Замыкания мидл+ | Лексический scope, [[Environment]], var в циклах, stale closure в React | /10 |
+| Микро/макрозадачи | Event loop, две очереди, await как then, microtask starvation, RAF | /10 |
+| Модули раньше срока | `content/{module}/{lesson}/`, catch-all `[...slug]`, аккордеон с Set | /10 |
+
+### Неделя 4: Геймификация и привычка
+
+| Что сделано | Ключевые понятия | Моя оценка |
+|---|---|---|
+| Стрики | startOfDay, daysBetween, throttle 1ч, fire-and-forget update | /10 |
+| XP за улучшение | findUnique перед upsert, delta XP, GREATEST в SQL | /10 |
+| Атомарный increment | `{ increment: N }` Prisma, защита от race condition | /10 |
+| Дневная цель | lazy reset, conditional spread `...(isNewDay && {...})` | /10 |
+| Диалог «подсмотреть» | peekedAtTheory, peekDialogShown, локальный state + Zustand | /10 |
+| Push через бота | Bot API через fetch, web_app кнопка, chunked параллелизм, CRON_SECRET | /10 |
+| Чистая функция pickNotification | separation of concerns, тестируется без БД | /10 |
+| Raw SQL casts | `::int`, `::"LessonStatus"`, почему Postgres не кастит implicit в VALUES | /10 |
+| Таймзоны IANA | `Intl.DateTimeFormat`, UTC в БД vs локальный день, X-Timezone header | /10 |
 
 ---
 

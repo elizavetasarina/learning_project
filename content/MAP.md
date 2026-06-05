@@ -110,6 +110,9 @@
 | 06 | Атомарные операции: increment в Prisma, гонки и защита | ⏳ |
 | 07 | Zustand: store вне React, точечные подписки, паттерны | ⏳ |
 | 08 | Server-side throttle: lastActivityAt раз в час | 💡 |
+| 09 | Raw SQL в Prisma 7: type casts `::int`, `::"LessonStatus"` (тот баг) | ⏳ |
+| 10 | IANA timezones: UTC в БД, Intl.DateTimeFormat, X-Timezone header | ⏳ |
+| 11 | Push через Telegram Bot API: cron-secret, web_app кнопка, rate limit | ⏳ |
 | 09 | Content-as-code: уроки как файлы, не как БД-записи | 💡 |
 | 10 | Структура папок: lib vs hooks vs components — правила | 💡 |
 

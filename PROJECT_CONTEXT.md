@@ -175,6 +175,7 @@ users
   - daily_goal       — порог дневной цели (по умолчанию 50)
   - daily_xp         — набрано за сегодня
   - daily_xp_date    — к какому дню относится daily_xp (для lazy reset)
+  - timezone         — IANA-имя таймзоны юзера ("Europe/Moscow"), nullable
   - last_activity_at
 
 lesson_progress
@@ -291,6 +292,7 @@ review_schedule
 - ✅ «Точно хотите подсмотреть?» — диалог + пометка `peekedAtTheory` на итоговом экране
 - ✅ Push-уведомления — Vercel Cron 18:00 UTC, три триггера с приоритетом (streak-at-risk / comeback / finish-goal), защита `CRON_SECRET`, обёртка `lib/telegram-bot.ts`
 - ✅ Фикс: `::int` и `::"LessonStatus"` casts в raw SQL под Prisma 7 + adapter-pg
+- ✅ Таймзоны: клиент шлёт `X-Timezone` (IANA, через `Intl.DateTimeFormat`), сервер хранит в `users.timezone`, все date-сравнения через `startOfDayInTz()` в `lib/datetime.ts` (нативный Intl, без либ)
 
 **Контент:** 7 уроков. Реально использую приложение для подготовки.
 
@@ -527,6 +529,7 @@ review_schedule
 - ✅ Push через бота: `lib/telegram-bot.ts` + `lib/notifications.ts` + cron `/api/cron/daily-push`
 - ✅ Защита cron через `CRON_SECRET`, env `APP_URL` с `.trim()` против whitespace
 - ✅ Багфикс: explicit casts `::int` / `::"LessonStatus"` в raw SQL под Prisma 7 + adapter-pg
+- ✅ Таймзоны юзера: `X-Timezone` header, `users.timezone` (IANA), `lib/datetime.ts` (`startOfDayInTz`, `daysBetweenInTz`). Стрики и dailyXp считаются в локальном дне юзера, не UTC. Миграция БД сделана руками через Supabase SQL Editor (Free tier не даёт direct connection)
 
 **Следующая сессия (на выбор):**
 
