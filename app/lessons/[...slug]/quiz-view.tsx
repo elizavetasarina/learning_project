@@ -7,6 +7,7 @@ import type { Question } from "@/types/content";
 import { Zap } from "lucide-react";
 import { useQuizStore } from "@/store/quiz";
 import { useProgressStore } from "@/store/progress";
+import { isAnswerCorrect } from "@/lib/quiz";
 
 interface QuizViewProps {
   questions: Question[];
@@ -58,24 +59,7 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
 
   function checkIsCorrect(): boolean {
     if (!question) return false;
-    if (question.type === "choice") {
-      return userAnswer === question.correct;
-    }
-    if (question.type === "multi") {
-      // Сравниваем массивы: отсортированные выбранные === отсортированные правильные
-      const selected = (userAnswer as number[] | undefined) ?? [];
-      const correct = [...question.correct].sort();
-      const sorted = [...selected].sort();
-      return (
-        correct.length === sorted.length &&
-        correct.every((v, i) => v === sorted[i])
-      );
-    }
-    // input
-    return (
-      String(userAnswer).trim().toLowerCase() ===
-      question.answer.trim().toLowerCase()
-    );
+    return isAnswerCorrect(question, userAnswer);
   }
 
   // Есть ли ответ у текущего вопроса (для disabled кнопки «Проверить»)
@@ -94,17 +78,24 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
   async function handleNext() {
     if (isLast) {
       // Считаем процент и сохраняем через progress store.
-      // Важно дождаться save: иначе bg-данные (XP, status) не успевают
-      // дойти, и юзер видит «+0 XP» на итоговом экране.
       const percentage = Math.round((correctCount / questions.length) * 100);
+
+      // Собираем массив ответов для SR. Для каждого вопроса:
+      // правильно/нет → grade=5/0 на сервере.
+      // Если юзер не ответил на вопрос (например, пропустил) — считаем неправильно:
+      // забыл ⇒ значит карточка не вспомнилась ⇒ сброс интервала.
+      const answersForSr = questions.map((q) => ({
+        questionId: q.id,
+        isCorrect: isAnswerCorrect(q, answers[q.id]),
+      }));
+
       setIsSaving(true);
       setSaveError(null);
-      const err = await saveToServer(slug, percentage);
+      const err = await saveToServer(slug, percentage, answersForSr);
       setIsSaving(false);
       if (err !== null) {
-        // Показываем РЕАЛЬНЫЙ текст ошибки от сервера — без него непонятно, что чинить
         setSaveError(err);
-        return; // не переходим на финальный экран, чтобы юзер не потерял шанс retry
+        return;
       }
     }
     next(isLast);

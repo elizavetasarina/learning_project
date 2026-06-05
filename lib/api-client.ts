@@ -115,6 +115,14 @@ interface SaveProgressResponse {
   };
   /** XP, заработанный за это прохождение (0 если не улучшил результат) */
   xpEarned: number;
+  /** Сколько SR-записей обновили (для аналитики, может быть 0) */
+  srUpdated?: number;
+}
+
+/** Один ответ юзера в тесте для обновления SR */
+export interface QuestionAnswer {
+  questionId: string;
+  isCorrect: boolean;
 }
 
 // ─── Экспортируемые функции ─────────────────────────────────
@@ -124,10 +132,99 @@ export function fetchProgress() {
   return apiRequest<ProgressResponse>("/api/progress");
 }
 
-/** Сохранить результат квиза */
-export function saveProgress(lessonSlug: string, score: number) {
+/**
+ * Сохранить результат квиза.
+ *
+ * Параметр answers (опциональный) — массив ответов юзера на каждый вопрос.
+ * Если передан, сервер дополнительно пересчитает SR-расписание для каждого
+ * вопроса через SM-2. Если не передан — SR-логика пропускается, только
+ * lesson_progress обновится (обратная совместимость).
+ */
+export function saveProgress(
+  lessonSlug: string,
+  score: number,
+  answers?: QuestionAnswer[],
+) {
   return apiRequest<SaveProgressResponse>("/api/progress", {
     method: "POST",
-    body: JSON.stringify({ lessonSlug, score }),
+    body: JSON.stringify({ lessonSlug, score, answers }),
+  });
+}
+
+/** Ответ /api/reviews/init */
+interface InitReviewsResponse {
+  ok: true;
+  created: number;
+}
+
+/** Элемент списка «к повтору сейчас» */
+export interface DueReview {
+  lessonSlug: string;
+  questionId: string;
+}
+
+/** Ответ /api/reviews/due */
+interface DueReviewsResponse {
+  due: DueReview[];
+}
+
+/** Один элемент сессии повторения — урок + полный вопрос */
+export interface ReviewSessionItem {
+  lessonSlug: string;
+  lessonTitle: string;
+  // Полный объект вопроса с типом из @/types/content.
+  // Не импортирую тип сюда чтобы не плодить deep-импорты; импортируем там, где используем.
+  question: import("@/types/content").Question;
+}
+
+/** Ответ /api/reviews/session */
+interface ReviewSessionResponse {
+  items: ReviewSessionItem[];
+}
+
+/** Ответ /api/reviews/answer */
+interface ReviewAnswerResponse {
+  intervalDays: number;
+  nextReviewAt: string;
+}
+
+/**
+ * Список вопросов, которые пора повторить сейчас.
+ * Главная использует .length для бейджа, /review — полный массив.
+ */
+export function fetchDueReviews() {
+  return apiRequest<DueReviewsResponse>("/api/reviews/due");
+}
+
+/** Сессия повторения — полные данные вопросов для UI экрана /review */
+export function fetchReviewSession() {
+  return apiRequest<ReviewSessionResponse>("/api/reviews/session");
+}
+
+/** Один ответ в режиме повторения */
+export function answerReview(
+  lessonSlug: string,
+  questionId: string,
+  isCorrect: boolean,
+) {
+  return apiRequest<ReviewAnswerResponse>("/api/reviews/answer", {
+    method: "POST",
+    body: JSON.stringify({ lessonSlug, questionId, isCorrect }),
+  });
+}
+
+/**
+ * Eager-инициализация SR-записей для урока.
+ *
+ * Вызывается при mount LessonView: «вот slug + id вопросов, добавь в SR
+ * те, которых ещё нет». Идемпотентно — можно дёргать сколько угодно раз.
+ *
+ * Fire-and-forget на клиенте: если запрос упал — урок всё равно открылся,
+ * SR подхватит вопросы при следующем заходе.
+ */
+export function initReviews(lessonSlug: string, questionIds: string[]) {
+  return apiRequest<InitReviewsResponse>("/api/reviews/init", {
+    method: "POST",
+    body: JSON.stringify({ lessonSlug, questionIds }),
   });
 }

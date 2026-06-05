@@ -1,5 +1,12 @@
 import { create } from "zustand";
-import { fetchProgress, saveProgress, type LessonProgressData, type UserData } from "@/lib/api-client";
+import {
+  fetchProgress,
+  saveProgress,
+  fetchDueReviews,
+  type LessonProgressData,
+  type QuestionAnswer,
+  type UserData,
+} from "@/lib/api-client";
 
 /**
  * Progress Store — глобальное состояние прогресса пользователя.
@@ -21,6 +28,8 @@ interface ProgressState {
   userData: UserData | null;
   /** XP, полученный за последний save (для показа "+N XP" в quiz-view) */
   lastXpEarned: number;
+  /** Сколько вопросов сейчас к повтору (для карточки на главной) */
+  dueCount: number;
   /** Идёт ли загрузка */
   isLoading: boolean;
   /** Была ли ошибка */
@@ -32,10 +41,16 @@ interface ProgressActions {
   load: () => Promise<void>;
   /**
    * Сохранить результат квиза и обновить локальный state.
+   * answers — массив { questionId, isCorrect } для обновления SR-расписания.
    * Возвращает: null = успех, строка = текст ошибки от сервера.
-   * Раньше возвращал boolean — но тогда теряли причину ошибки.
    */
-  save: (lessonSlug: string, score: number) => Promise<string | null>;
+  save: (
+    lessonSlug: string,
+    score: number,
+    answers?: QuestionAnswer[],
+  ) => Promise<string | null>;
+  /** Уменьшить счётчик «к повтору» (оптимистичное обновление) */
+  decrementDue: () => void;
 }
 
 // ─── Store ──────────────────────────────────────────────────
@@ -46,33 +61,44 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
     progressMap: null,
     userData: null,
     lastXpEarned: 0,
+    dueCount: 0,
     isLoading: false,
     error: null,
 
-    // Загрузка прогресса из API
+    // Загрузка прогресса + due-counts параллельно из API.
+    // Promise.all: оба запроса уходят одновременно, общий wall-time = max,
+    // а не сумма. На медленной сети заметно.
     load: async () => {
       // Если уже загрузили — не загружаем повторно.
-      // Это ключевое отличие от useProgress хука: хук загружал
-      // при каждом mount компонента, store — один раз.
       if (get().progressMap !== null || get().isLoading) return;
 
       set({ isLoading: true, error: null });
 
-      const result = await fetchProgress();
+      const [progressResult, dueResult] = await Promise.all([
+        fetchProgress(),
+        fetchDueReviews(),
+      ]);
 
-      if (result.ok) {
+      if (progressResult.ok) {
         const map = new Map(
-          result.data.progress.map((p) => [p.lessonSlug, p])
+          progressResult.data.progress.map((p) => [p.lessonSlug, p]),
         );
-        set({ progressMap: map, userData: result.data.user, isLoading: false });
+        // dueResult — мягкая ошибка: если упал, считаем 0. Не валим главный.
+        const dueCount = dueResult.ok ? dueResult.data.due.length : 0;
+        set({
+          progressMap: map,
+          userData: progressResult.data.user,
+          dueCount,
+          isLoading: false,
+        });
       } else {
-        set({ error: result.error, isLoading: false });
+        set({ error: progressResult.error, isLoading: false });
       }
     },
 
     // Сохранение результата квиза
-    save: async (lessonSlug, score) => {
-      const result = await saveProgress(lessonSlug, score);
+    save: async (lessonSlug, score, answers) => {
+      const result = await saveProgress(lessonSlug, score, answers);
 
       if (result.ok) {
         // Обновляем локальный state, не дожидаясь повторной загрузки.
@@ -108,6 +134,10 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
       }
 
       return result.error; // текст ошибки от сервера
+    },
+
+    decrementDue: () => {
+      set({ dueCount: Math.max(0, get().dueCount - 1) });
     },
   })
 );

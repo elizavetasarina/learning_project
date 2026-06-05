@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { nextSRState, INITIAL_STATE } from "@/lib/sr";
 
 // Запрещаем Next.js пре-рендерить этот роут при билде.
 // Без этого Next.js пытается выполнить код при сборке,
@@ -77,14 +78,18 @@ export async function POST(request: Request) {
     }
 
     // Парсим и валидируем тело запроса
-    let body: { lessonSlug?: string; score?: number };
+    let body: {
+      lessonSlug?: string;
+      score?: number;
+      answers?: Array<{ questionId?: unknown; isCorrect?: unknown }>;
+    };
     try {
       body = await request.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
     }
 
-    const { lessonSlug, score } = body;
+    const { lessonSlug, score, answers } = body;
 
     if (!lessonSlug || typeof lessonSlug !== "string") {
       return NextResponse.json(
@@ -198,6 +203,79 @@ export async function POST(request: Request) {
       }
     }
 
+    // ─── SR: пересчитываем расписание повторений ────────────
+    // Для каждого ответа: достаём текущее SR-состояние, прогоняем через
+    // nextSRState (SM-2), пишем новое состояние + nextReviewAt.
+    //
+    // grade у нас бинарный: правильно = 5, неправильно = 0.
+    // Это «авто-режим». Когда (если) добавим Anki-кнопки — заменим
+    // на конкретный grade от юзера.
+    //
+    // Если запись ещё не создана (eager-init не дёрнулся или новый вопрос) —
+    // используем INITIAL_STATE через upsert.
+    let srUpdated = 0;
+    if (Array.isArray(answers) && answers.length > 0) {
+      const now = new Date();
+      await Promise.all(
+        answers.map(async (a) => {
+          // Валидация каждой записи: пропускаем мусор молча
+          if (typeof a.questionId !== "string" || a.questionId.length === 0) return;
+          if (typeof a.isCorrect !== "boolean") return;
+
+          // Текущее состояние или дефолт
+          const existing = await prisma.reviewSchedule.findUnique({
+            where: {
+              userId_lessonSlug_questionId: {
+                userId: auth.user.id,
+                lessonSlug,
+                questionId: a.questionId,
+              },
+            },
+          });
+          const prev = existing
+            ? {
+                easeFactor: existing.easeFactor,
+                intervalDays: existing.intervalDays,
+                repetitions: existing.repetitions,
+              }
+            : INITIAL_STATE;
+
+          const grade = a.isCorrect ? 5 : 0;
+          const result = nextSRState(prev, grade, now);
+
+          // Upsert: создаём если не было (на случай если eager не успел),
+          // обновляем если было.
+          await prisma.reviewSchedule.upsert({
+            where: {
+              userId_lessonSlug_questionId: {
+                userId: auth.user.id,
+                lessonSlug,
+                questionId: a.questionId,
+              },
+            },
+            create: {
+              userId: auth.user.id,
+              lessonSlug,
+              questionId: a.questionId,
+              easeFactor: result.state.easeFactor,
+              intervalDays: result.state.intervalDays,
+              repetitions: result.state.repetitions,
+              nextReviewAt: result.nextReviewAt,
+              lastReviewedAt: now,
+            },
+            update: {
+              easeFactor: result.state.easeFactor,
+              intervalDays: result.state.intervalDays,
+              repetitions: result.state.repetitions,
+              nextReviewAt: result.nextReviewAt,
+              lastReviewedAt: now,
+            },
+          });
+          srUpdated++;
+        }),
+      );
+    }
+
     return NextResponse.json({
       progress: {
         lessonSlug: progress.lesson_slug,
@@ -206,6 +284,7 @@ export async function POST(request: Request) {
         attemptsCount: progress.attempts_count,
       },
       xpEarned,
+      srUpdated,
     });
   } catch (error) {
     // Лог идёт в Vercel logs — там и смотреть детали, если что-то упадёт.

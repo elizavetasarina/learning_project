@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Eye } from "lucide-react";
 import { LessonContent } from "./lesson-content";
 import { QuizView } from "./quiz-view";
 import { useQuizStore } from "@/store/quiz";
 import { pluralize } from "@/lib/pluralize";
+import { initReviews } from "@/lib/api-client";
 import type { Question } from "@/types/content";
 
 /**
@@ -41,6 +42,18 @@ export function LessonView({
   const [activeTab, setActiveTab] = useState<Tab>("theory");
   const [showPeekDialog, setShowPeekDialog] = useState(false);
   const hasQuiz = questions.length > 0;
+
+  // Eager-инициализация SR при открытии урока.
+  // Дёргаем POST /api/reviews/init с slug + id вопросов: сервер создаст
+  // SR-записи для тех вопросов, которых ещё нет (createMany skipDuplicates).
+  // Идемпотентно — Strict Mode двойной вызов или повторное открытие урока
+  // ничего не сломают.
+  // Fire-and-forget: ошибку не показываем — SR подхватит при следующем заходе.
+  useEffect(() => {
+    if (!hasQuiz) return;
+    const questionIds = questions.map((q) => q.id);
+    initReviews(slug, questionIds);
+  }, [slug, hasQuiz, questions]);
 
   // Zustand: читаем состояние теста для определения, начат ли он
   const currentIndex = useQuizStore((s) => s.currentIndex);

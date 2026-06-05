@@ -2,10 +2,11 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { Flame, BookOpen, ChevronRight, Trophy, Zap, Target, Check } from "lucide-react";
+import { Flame, BookOpen, ChevronRight, Trophy, Zap, Target, Check, RotateCcw } from "lucide-react";
 import { useTelegram } from "@/hooks/use-telegram";
 import { useProgressStore } from "@/store/progress";
 import { getLevel, getLevelProgress, xpForLevel } from "@/lib/xp";
+import { pluralize } from "@/lib/pluralize";
 import { WeekStreak } from "./week-streak";
 import type { LessonMeta } from "@/types/content";
 
@@ -20,6 +21,7 @@ export function HomeContent({ lessons }: HomeContentProps) {
   // Zustand: точечная подписка — перерендер только если progressMap изменился
   const progressMap = useProgressStore((s) => s.progressMap);
   const userData = useProgressStore((s) => s.userData);
+  const dueCount = useProgressStore((s) => s.dueCount);
   const load = useProgressStore((s) => s.load);
 
   // Загружаем прогресс при первом рендере (load внутри проверяет: если уже загружен — пропускает)
@@ -65,6 +67,25 @@ export function HomeContent({ lessons }: HomeContentProps) {
       {/* Дневная цель */}
       {userData && (
         <DailyGoalCard dailyXp={userData.dailyXp} dailyGoal={userData.dailyGoal} />
+      )}
+
+      {/* Карточка "К повтору сегодня" — показываем только если есть что повторять.
+          Это главный CTA для удержания: SR работает, только если юзер реально
+          приходит закрывать «долги» по карточкам. */}
+      {dueCount > 0 && (
+        <Link
+          href="/review"
+          className="flex items-center gap-4 rounded-xl border border-warning/30 bg-warning/10 p-5 transition-all active:scale-[0.97]"
+        >
+          <RotateCcw size={24} className="text-warning" />
+          <div className="flex-1">
+            <p className="text-sm text-hint">К повтору сегодня</p>
+            <p className="font-semibold text-warning">
+              {dueCount} {pluralize(dueCount, "вопрос", "вопроса", "вопросов")}
+            </p>
+          </div>
+          <ChevronRight size={20} className="text-warning" />
+        </Link>
       )}
 
       {/* Карточка "Продолжить обучение" */}
