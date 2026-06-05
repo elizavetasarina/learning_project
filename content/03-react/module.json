@@ -1,0 +1,5 @@
+{
+  "title": "React глубоко",
+  "description": "Внутренности: Fiber, hooks, RSC, state management, перформанс",
+  "order": 3
+}

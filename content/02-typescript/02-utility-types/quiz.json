@@ -1,0 +1,187 @@
+[
+  {
+    "id": "ut-q1",
+    "type": "choice",
+    "question": "Что делает Partial<User>?",
+    "options": [
+      "Создаёт частичную копию объекта User",
+      "Преобразует все поля типа User в опциональные (с ?)",
+      "Удаляет необязательные поля",
+      "Делает все поля readonly"
+    ],
+    "correct": 1,
+    "explanation": "Partial<T> делает ВСЕ поля опциональными. Если User = { id: number, name: string }, то Partial<User> = { id?: number, name?: string }. Используется для PATCH-обновлений, форм редактирования."
+  },
+  {
+    "id": "ut-q2",
+    "type": "choice",
+    "question": "Pick<User, 'id' | 'name'> — что это?",
+    "options": [
+      "Удаляет 'id' и 'name' из User",
+      "Создаёт новый тип, содержащий ТОЛЬКО поля 'id' и 'name'",
+      "Делает 'id' и 'name' опциональными",
+      "Запрещает доступ к этим полям"
+    ],
+    "correct": 1,
+    "explanation": "Pick — выбрать. type X = Pick<User, 'id' | 'name'> = { id: number, name: string }. Остальные поля User в X не попадают. Полезно для публичных интерфейсов (PublicProfile = Pick<User, ...без email...>)."
+  },
+  {
+    "id": "ut-q3",
+    "type": "choice",
+    "question": "Чем Omit<User, 'id'> отличается от Pick?",
+    "options": [
+      "Ничем",
+      "Omit берёт всё КРОМЕ указанных ключей, Pick берёт ТОЛЬКО указанные",
+      "Omit работает только с числами",
+      "Pick устарел"
+    ],
+    "correct": 1,
+    "explanation": "Omit и Pick — обратные. Omit<User, 'id'> = всё User без id. Pick<User, 'id'> = только id. Выбор зависит от того, что короче: исключений мало → Omit; включений мало → Pick."
+  },
+  {
+    "id": "ut-q4",
+    "type": "input",
+    "question": "Какой utility type делает все поля типа обязательными (убирает все ?)?",
+    "answer": "Required",
+    "explanation": "Required<T> — противоположность Partial. Все поля становятся обязательными. Required<{ name?: string }> = { name: string }. Реже нужен, но полезно после нормализации данных, когда гарантируешь полноту."
+  },
+  {
+    "id": "ut-q5",
+    "type": "choice",
+    "question": "Record<string, number> эквивалентен:",
+    "options": [
+      "{ string: number }",
+      "{ [key: string]: number } — словарь string → number",
+      "Map<string, number>",
+      "string | number"
+    ],
+    "correct": 1,
+    "explanation": "Record<K, V> = индексная сигнатура. Record<string, number> ≡ { [key: string]: number }. Если K — литералы ('a' | 'b'), Record даёт типобезопасный словарь, где все ключи ОБЯЗАТЕЛЬНО есть: Record<'red' | 'blue', string>."
+  },
+  {
+    "id": "ut-q6",
+    "type": "choice",
+    "question": "Что даст ReturnType<typeof getUser>, если getUser возвращает { id: number, name: string }?",
+    "options": [
+      "Promise<{ id: number, name: string }>",
+      "{ id: number, name: string }",
+      "void",
+      "typeof getUser"
+    ],
+    "correct": 1,
+    "explanation": "ReturnType извлекает тип возврата функции (не вызывая её!). typeof getUser получает тип самой функции, ReturnType — её результат. Если функция async — возврат это Promise<X>, и тогда ReturnType<typeof asyncFn> = Promise<X>, без разворачивания."
+  },
+  {
+    "id": "ut-q7",
+    "type": "choice",
+    "question": "Что нужно использовать для извлечения типа резолва Promise (вместо самописного UnwrapPromise)?",
+    "options": [
+      "PromiseType<T>",
+      "Awaited<T> (с TS 4.5+)",
+      "Resolve<T>",
+      "Unwrap<T>"
+    ],
+    "correct": 1,
+    "explanation": "Awaited<T> разворачивает Promise. Awaited<Promise<string>> = string. Awaited<Promise<Promise<number>>> = number (рекурсивно). Awaited<number> = number (если не Promise — возвращает как есть). Раньше писали кастомные UnwrapPromise через infer."
+  },
+  {
+    "id": "ut-q8",
+    "type": "choice",
+    "question": "Parameters<typeof fn> для function fn(a: string, b: number) — что вернёт?",
+    "options": [
+      "string | number",
+      "{ a: string, b: number }",
+      "[a: string, b: number] — кортеж типов аргументов",
+      "Args"
+    ],
+    "correct": 2,
+    "explanation": "Parameters возвращает кортеж (tuple). [string, number] (с TS 4.0+ — с именами параметров для красоты, но это всё ещё tuple). Удобно когда нужно передать args дальше: function wrap(...args: Parameters<typeof fn>) { fn(...args) }."
+  },
+  {
+    "id": "ut-q9",
+    "type": "multi",
+    "question": "Что верно про Readonly<T>?",
+    "options": [
+      "Делает все поля типа неизменяемыми",
+      "Это compile-time only — в рантайме объект всё равно мутируем",
+      "Эквивалент Object.freeze в рантайме",
+      "Глубокая (deep) рекурсивная заморозка",
+      "Полезно для props компонента"
+    ],
+    "correct": [0, 1, 4],
+    "explanation": "Readonly<T> — TS не даст переприсвоить поле. Но в JS-рантайме объект остаётся изменяемым (это не Object.freeze). Не глубокий — вложенные объекты всё ещё мутируемы. Для глубокого readonly есть DeepReadonly (самописный) или as const."
+  },
+  {
+    "id": "ut-q10",
+    "type": "choice",
+    "question": "type Edit = Partial<Omit<User, 'id'>> — что это?",
+    "options": [
+      "Невалидный синтаксис",
+      "Тип User без поля 'id', где все остальные поля опциональны — типичная форма редактирования",
+      "Полный User",
+      "{ id?: never } & остальное"
+    ],
+    "correct": 1,
+    "explanation": "Композиция работает: сначала Omit убирает id, потом Partial делает остальное опциональным. Реальное использование: форма 'редактирование юзера' — id есть в URL (не в форме), остальные поля могут или не могут быть заполнены."
+  },
+  {
+    "id": "ut-q11",
+    "type": "input",
+    "question": "Какой utility type убирает null и undefined из union?",
+    "answer": "NonNullable",
+    "explanation": "NonNullable<string | null | undefined> = string. Удобно после narrowing или когда явно нужно избавиться от null. Реализован: type NonNullable<T> = T extends null | undefined ? never : T."
+  },
+  {
+    "id": "ut-q12",
+    "type": "choice",
+    "question": "Что делает Exclude<'a' | 'b' | 'c', 'a' | 'b'>?",
+    "options": [
+      "'c'",
+      "'a' | 'b'",
+      "never",
+      "'a' | 'b' | 'c'"
+    ],
+    "correct": 0,
+    "explanation": "Exclude — фильтрует union, убирая указанные члены. Exclude<'a'|'b'|'c', 'a'|'b'> = 'c'. Противоположный — Extract — оставляет только указанные. Эти два работают со string literal unions."
+  },
+  {
+    "id": "ut-q13",
+    "type": "choice",
+    "question": "type DbUser = Awaited<ReturnType<typeof prisma.user.upsert>> — что это делает?",
+    "options": [
+      "Создаёт нового юзера",
+      "Извлекает тип User из самой функции upsert: тип функции → тип возврата (Promise) → разворачивает Promise → получаем User",
+      "Это синтаксическая ошибка",
+      "Получает экземпляр Prisma"
+    ],
+    "correct": 1,
+    "explanation": "Композиция двух utility types. typeof prisma.user.upsert — тип функции. ReturnType — возврат (Promise<User>). Awaited — разворачивает Promise → User. Это идиома: тип User выводится из самой Prisma-функции, не нужно импортировать."
+  },
+  {
+    "id": "ut-q14",
+    "type": "choice",
+    "question": "type Permissions = Record<'read' | 'write' | 'admin', boolean> — что это?",
+    "options": [
+      "Опциональный объект",
+      "Объект, в котором ОБЯЗАТЕЛЬНО есть три ключа (read, write, admin), и значение каждого — boolean",
+      "Union типов",
+      "Enum"
+    ],
+    "correct": 1,
+    "explanation": "Record с union литералов делает объект, где все ключи обязательные. const p: Permissions = { read: true, write: false, admin: false } — все три ОБЯЗАНЫ быть. Это типобезопасный 'строго определённый словарь'."
+  },
+  {
+    "id": "ut-q15",
+    "type": "multi",
+    "question": "В каких случаях utility types особенно полезны?",
+    "options": [
+      "API: тип ответа vs тип запроса (Omit лишних полей)",
+      "Формы: PATCH-обновления (Partial)",
+      "Публичные интерфейсы: скрыть приватные поля (Pick/Omit)",
+      "Расширение типов из библиотек без копирования",
+      "Защита от мутаций (Readonly)"
+    ],
+    "correct": [0, 1, 2, 3, 4],
+    "explanation": "Все верны. Utility types позволяют ВЫВОДИТЬ один тип из другого: меняешь исходный — производные обновляются автоматически. Это и есть DRY на уровне типов. Без utility — копипаста типов и баги при изменениях."
+  }
+]

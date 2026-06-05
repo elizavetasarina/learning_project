@@ -1,0 +1,182 @@
+[
+  {
+    "id": "proto-q1",
+    "type": "choice",
+    "question": "Что такое прототип объекта в JavaScript?",
+    "options": [
+      "Тип данных",
+      "Другой объект, в котором ищется свойство, если в самом объекте его нет",
+      "Описание интерфейса класса",
+      "Шаблон для создания новых объектов"
+    ],
+    "correct": 1,
+    "explanation": "Прототип — это объект-ссылка. Когда обращаешься к свойству и его нет в самом объекте, JS идёт к прототипу и ищет там. Если нет — к прототипу прототипа. И так до null. Это и есть prototype chain."
+  },
+  {
+    "id": "proto-q2",
+    "type": "choice",
+    "question": "Чем отличаются prototype и __proto__?",
+    "options": [
+      "Это одно и то же",
+      "prototype — поле функции-конструктора (объект, который станет прототипом инстансов). __proto__ — ссылка на прототип конкретного объекта",
+      "prototype устарел, надо использовать __proto__",
+      "__proto__ работает только в браузере"
+    ],
+    "correct": 1,
+    "explanation": "Главная путаница. prototype есть только у функций. __proto__ (или Object.getPrototypeOf) есть у любого объекта. Связь: после new Fn() у созданного объекта __proto__ ссылается на Fn.prototype."
+  },
+  {
+    "id": "proto-q3",
+    "type": "choice",
+    "question": "Что делает new Fn()?",
+    "options": [
+      "Просто вызывает функцию Fn",
+      "Создаёт пустой объект, ставит его __proto__ = Fn.prototype, вызывает Fn с этим объектом как this, возвращает объект",
+      "Создаёт класс",
+      "Клонирует функцию"
+    ],
+    "correct": 1,
+    "explanation": "4 шага new: 1) создаём {}; 2) ставим __proto__ = Fn.prototype; 3) Fn.call(obj, ...args); 4) возвращаем obj (если функция явно не вернула другой объект). Это базовый механизм 'конструктора' в JS."
+  },
+  {
+    "id": "proto-q4",
+    "type": "choice",
+    "question": "Что такое class в современном JavaScript?",
+    "options": [
+      "Новый OOP-механизм поверх прототипов",
+      "Синтаксический сахар над функциями-конструкторами и прототипами. Под капотом — те же прототипы, плюс strict mode и обязательный new",
+      "Альтернатива функциям",
+      "Класс из Java, скопированный в JS"
+    ],
+    "correct": 1,
+    "explanation": "class в JS — это синтаксический сахар. class Dog { constructor(){}; bark(){} } примерно эквивалентен function Dog(){} + Dog.prototype.bark = function(){}. Никакого 'OOP-класса' в стиле Java нет — есть прототипы. Дополнительно: всегда strict, нельзя вызвать без new, методы не enumerable."
+  },
+  {
+    "id": "proto-q5",
+    "type": "input",
+    "question": "Как создать объект без прототипа (без цепочки __proto__)?",
+    "answer": "Object.create(null)",
+    "explanation": "Object.create(null) — объект, у которого __proto__ === null. Полезно для 'чистых словарей' (когда ключи приходят извне и не должны конфликтовать с встроенными методами вроде toString). Минус: нет hasOwnProperty и других методов — приходится использовать Object.hasOwn."
+  },
+  {
+    "id": "proto-q6",
+    "type": "choice",
+    "question": "Что произойдёт при rex.eats, если:\n\nconst animal = { eats: true };\nconst rex = {};\nObject.setPrototypeOf(rex, animal);",
+    "options": [
+      "undefined — у rex нет такого поля",
+      "true — JS найдёт eats у прототипа animal",
+      "TypeError",
+      "false"
+    ],
+    "correct": 1,
+    "explanation": "Чтение rex.eats запускает поиск: в самом rex нет → идём к __proto__ (это animal) → нашли. Чтение всегда идёт ПО цепочке. Запись же кладёт свойство в сам объект, а не в прототип."
+  },
+  {
+    "id": "proto-q7",
+    "type": "choice",
+    "question": "Что делает extends в class Child extends Parent?",
+    "options": [
+      "Копирует все методы Parent в Child",
+      "Ставит Child.prototype.__proto__ = Parent.prototype — создаёт цепочку прототипов",
+      "Импортирует Parent",
+      "Создаёт две независимые иерархии"
+    ],
+    "correct": 1,
+    "explanation": "extends настраивает цепочку: Child.prototype → Parent.prototype → Object.prototype → null. При rex.someParentMethod() JS пройдёт по этой цепи и найдёт метод. Это всё ещё прототипы, просто с удобным синтаксисом."
+  },
+  {
+    "id": "proto-q8",
+    "type": "multi",
+    "question": "Что верно про Object.prototype?",
+    "options": [
+      "Это вершина большинства цепочек прототипов",
+      "Содержит общие методы: toString, hasOwnProperty, valueOf",
+      "У него __proto__ === null",
+      "Можно удалить",
+      "Доступен только в Node.js"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "Object.prototype — корень обычных объектов. Содержит унаследованные методы. Его __proto__ === null (конец цепи). Удалить нельзя (стандарт), доступен везде."
+  },
+  {
+    "id": "proto-q9",
+    "type": "choice",
+    "question": "Что выведет:\n\nconst arr = [1, 2, 3];\narr.__proto__ === Array.prototype",
+    "options": ["false", "true", "TypeError", "undefined"],
+    "correct": 1,
+    "explanation": "Массивы — объекты, наследующие от Array.prototype (где map, filter, slice, push). Поэтому arr.map(...) работает: JS ищет map в самом arr → нет → идёт к __proto__ = Array.prototype → находит."
+  },
+  {
+    "id": "proto-q10",
+    "type": "choice",
+    "question": "Что такое 'prototype pollution' и почему опасно?",
+    "options": [
+      "Когда чужой код подкидывает свои методы в Object.prototype — они появляются у ВСЕХ объектов, ломая логику ('forEach' в обычном объекте начинает быть функцией)",
+      "Утечка памяти из-за длинной цепи",
+      "Невалидная сериализация",
+      "Запрет на использование Object.create"
+    ],
+    "correct": 0,
+    "explanation": "Prototype pollution — атака, когда злоумышленник через уязвимый код (часто через парсинг __proto__ в JSON) добавляет свойство в Object.prototype. Это свойство появляется у ВСЕХ объектов в приложении — типичный security exploit. Защита: не парсить __proto__ из ненадёжного ввода, использовать Object.create(null) для словарей."
+  },
+  {
+    "id": "proto-q11",
+    "type": "choice",
+    "question": "Чем obj.hasOwnProperty('x') отличается от 'x' in obj?",
+    "options": [
+      "Ничем",
+      "hasOwnProperty проверяет только СВОИ свойства (не унаследованные), in — по всей цепочке",
+      "in устарел",
+      "hasOwnProperty работает только для строк"
+    ],
+    "correct": 1,
+    "explanation": "hasOwnProperty (или современный Object.hasOwn) — только свои поля. 'x' in obj — true даже для унаследованных через прототип. Это важно при работе со словарями: 'toString' in {} → true (унаследовано), но Object.hasOwn({}, 'toString') → false."
+  },
+  {
+    "id": "proto-q12",
+    "type": "input",
+    "question": "Какой современный метод заменяет obj.hasOwnProperty(key)?",
+    "answer": "Object.hasOwn",
+    "explanation": "Object.hasOwn(obj, key) — ES2022. Преимущества: не ломается если hasOwnProperty переопределили (или объект без прототипа через Object.create(null)). Используется в новом коде вместо obj.hasOwnProperty(key)."
+  },
+  {
+    "id": "proto-q13",
+    "type": "choice",
+    "question": "Можно ли вызвать класс без new?",
+    "options": [
+      "Да, как обычную функцию",
+      "Нет, TypeError: Class constructor cannot be invoked without 'new'",
+      "Только в non-strict mode",
+      "Только если в нём пустой constructor"
+    ],
+    "correct": 1,
+    "explanation": "Одно из отличий class от обычной функции-конструктора: class требует new. Без него — TypeError. У функции-конструктора без new this становится globalThis (или undefined в strict) — можно случайно загрязнить глобал. Class это предотвращает."
+  },
+  {
+    "id": "proto-q14",
+    "type": "multi",
+    "question": "Что верно про методы класса (class Dog { bark(){} })?",
+    "options": [
+      "bark лежит в Dog.prototype, не в каждом инстансе",
+      "Метод не enumerable (не появится в for...in)",
+      "Внутри метода всегда strict mode",
+      "Каждый new Dog() создаёт свою копию bark",
+      "Метод можно вызвать без инстанса: Dog.bark()"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "Методы класса лежат на prototype — один экземпляр функции, разделяется всеми инстансами (экономия памяти). Не enumerable (отличие от функции-конструктора). Strict mode внутри. Каждый new Dog() НЕ создаёт копию — все инстансы делят bark через цепочку. Чтобы вызвать Dog.bark() — нужен static."
+  },
+  {
+    "id": "proto-q15",
+    "type": "choice",
+    "question": "Почему добавлять методы в Array.prototype считается плохой практикой?",
+    "options": [
+      "Это медленно",
+      "Это запрещено стандартом",
+      "Можно конфликтовать с будущими стандартными методами (например, добавил .group, потом ES добавил Array.prototype.group с другой семантикой — твой код сломался)",
+      "Не работает в Node"
+    ],
+    "correct": 2,
+    "explanation": "Это техника monkey patching. До lodash-style утилит так делали (jQuery, Prototype.js). Главный минус — конфликты с будущими стандартами. Реальный случай: Array.prototype.flatten в Prototype.js конфликтнуло с ES Array.prototype.flat — пришлось добавлять #SmooshGate в спецификацию. Сегодня — выноси в утилитные функции."
+  }
+]

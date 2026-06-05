@@ -1,0 +1,5 @@
+{
+  "title": "Сеть и производительность",
+  "description": "HTTP, кэширование, CORS, rendering strategies, web vitals — что происходит между браузером и сервером",
+  "order": 4
+}

@@ -1,0 +1,5 @@
+{
+  "title": "TypeScript для мидла",
+  "description": "Generics, utility types, infer, conditional types, narrowing — инструменты, которые спрашивают на собесах",
+  "order": 2
+}

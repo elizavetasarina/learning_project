@@ -1,0 +1,176 @@
+[
+  {
+    "id": "this-q1",
+    "type": "choice",
+    "question": "Что главное определяет значение this в обычной функции?",
+    "options": [
+      "Где функция объявлена в коде",
+      "Способ её вызова (через new, точку, call/apply, или без)",
+      "Тип возвращаемого значения",
+      "Длина имени функции"
+    ],
+    "correct": 1,
+    "explanation": "В отличие от лексического scope (где переменные ищутся по месту объявления), this определяется СПОСОБОМ ВЫЗОВА. Это противоположный принцип: одна и та же функция при разных вызовах даёт разный this. 4 правила приоритета: new > call/apply/bind > точка > дефолт."
+  },
+  {
+    "id": "this-q2",
+    "type": "choice",
+    "question": "Что выведет:\n\nconst user = { name: 'Лиза', greet() { console.log(this.name); } };\nconst fn = user.greet;\nfn();",
+    "options": [
+      "'Лиза'",
+      "undefined (или TypeError в strict mode)",
+      "'user'",
+      "TypeError всегда"
+    ],
+    "correct": 1,
+    "explanation": "Классическая потеря this. fn() — вызов без точки → implicit binding не работает → дефолт. В strict mode this = undefined, и this.name бросит TypeError. Без strict (старый код) this = window, и this.name = window.name = '' или undefined."
+  },
+  {
+    "id": "this-q3",
+    "type": "input",
+    "question": "Какой метод позволяет вызвать функцию с конкретным this И аргументами через массив?",
+    "answer": "apply",
+    "explanation": "apply(thisArg, [args]) — это и есть. Альтернатива: call(thisArg, ...args) с аргументами через запятую. Мнемоника: Apply — Array, Call — Commas. С появлением spread можно использовать call с массивом: fn.call(ctx, ...arr) — apply почти не нужен."
+  },
+  {
+    "id": "this-q4",
+    "type": "choice",
+    "question": "Чем bind отличается от call?",
+    "options": [
+      "bind быстрее работает",
+      "bind не вызывает функцию, а возвращает новую с зафиксированным this",
+      "bind работает только в браузере",
+      "bind принимает массив, call — нет"
+    ],
+    "correct": 1,
+    "explanation": "bind(thisArg) возвращает НОВУЮ функцию. Внутри неё this всегда тот, что был передан в bind, независимо от того, как новую функцию вызовут. Полезно для колбэков: setTimeout(user.greet.bind(user), 0). call/apply вызывают сразу."
+  },
+  {
+    "id": "this-q5",
+    "type": "choice",
+    "question": "Что такое 'this' в стрелочной функции?",
+    "options": [
+      "Объект, вызвавший функцию",
+      "globalThis всегда",
+      "Стрелочная не имеет своего this — берёт из лексического окружения, где была объявлена",
+      "undefined всегда"
+    ],
+    "correct": 2,
+    "explanation": "У стрелочной функции своего this нет. Она наследует this из контекста, в котором была СОЗДАНА (не вызвана). Это похоже на замыкание: как переменные scope наследуются, так и this. Поэтому стрелочные не работают как методы объекта и не работают как конструкторы."
+  },
+  {
+    "id": "this-q6",
+    "type": "choice",
+    "question": "Что выведет:\n\nconst user = { name: 'Лиза', greet: () => console.log(this.name) };\nuser.greet();",
+    "options": [
+      "'Лиза'",
+      "undefined",
+      "TypeError",
+      "''"
+    ],
+    "correct": 1,
+    "explanation": "greet — стрелочная функция, объявлена в глобальном scope (литерал объекта НЕ создаёт scope). this в ней наследуется из глобального → window/undefined. this.name → undefined. Это типовая ошибка новичков: 'я сделал метод стрелочной, чтобы не было потери this' — и потерял ещё сильнее."
+  },
+  {
+    "id": "this-q7",
+    "type": "choice",
+    "question": "Что выведет:\n\nclass Counter {\n  count = 0;\n  increment() { this.count++; }\n}\nconst c = new Counter();\nconst inc = c.increment;\ninc();",
+    "options": [
+      "this.count становится 1",
+      "TypeError: Cannot read properties of undefined (reading 'count')",
+      "Ничего, count остаётся 0",
+      "ReferenceError"
+    ],
+    "correct": 1,
+    "explanation": "В классах всегда strict mode. inc() — вызов без точки → this = undefined → this.count бросит TypeError. Это причина паттерна 'arrow class field': increment = () => { this.count++ } — стрелочная наследует this из конструктора (экземпляра)."
+  },
+  {
+    "id": "this-q8",
+    "type": "multi",
+    "question": "В каких случаях НЕЛЬЗЯ использовать стрелочные функции?",
+    "options": [
+      "Как методы объекта, когда нужно this = объект",
+      "Как конструкторы через new",
+      "Как обработчики DOM-событий, когда нужно this = element",
+      "Как функции внутри других функций",
+      "Как callbacks в setTimeout"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "Стрелочные плохи там, где НУЖЕН свой this: методы объекта, конструкторы (TypeError), DOM-обработчики (если ждёшь this = element). Внутри других функций и в setTimeout — наоборот, они ИДЕАЛЬНЫ (наследуют this из окружения)."
+  },
+  {
+    "id": "this-q9",
+    "type": "input",
+    "question": "Как называется паттерн использования метода одного объекта на другом через Array.prototype.slice.call(arguments)?",
+    "answer": "method borrowing",
+    "explanation": "Method borrowing — заимствование метода. Берём Array.prototype.slice, вызываем через call с объектом-псевдомассивом — slice ведёт себя так, будто работает на массиве. Так до spread конвертировали arguments в массив. Сейчас: [...arguments] или rest parameters."
+  },
+  {
+    "id": "this-q10",
+    "type": "choice",
+    "question": "Что выведет:\n\nfunction fn() { return this; }\nfn.call(null);",
+    "options": [
+      "null — мы явно передали null",
+      "globalThis (в non-strict) или null (в strict)",
+      "undefined всегда",
+      "TypeError"
+    ],
+    "correct": 1,
+    "explanation": "В non-strict mode null/undefined в call заменяются на globalThis (boxing). В strict mode — остаются как есть. Современный код в модулях strict → this = null. На старом коде или в скриптах — globalThis. Это причина, почему fn.call(null) в Node ESM иногда даёт null, а в browser script — window."
+  },
+  {
+    "id": "this-q11",
+    "type": "choice",
+    "question": "Что вернёт:\n\nconst sum = (a, b) => a + b;\nconst sum5 = sum.bind(null, 5);\nsum5(3);",
+    "options": ["3", "5", "8", "undefined"],
+    "correct": 2,
+    "explanation": "bind фиксирует не только this, но и часть аргументов (partial application). sum.bind(null, 5) → новая функция, где первый аргумент всегда 5. sum5(3) = sum(5, 3) = 8. Это лёгкая версия каррирования."
+  },
+  {
+    "id": "this-q12",
+    "type": "multi",
+    "question": "Что верно про стрелочные функции?",
+    "options": [
+      "Не имеют своего this",
+      "Не имеют своего arguments",
+      "Нельзя вызвать через new",
+      "Не имеют свойства prototype",
+      "Не могут быть async"
+    ],
+    "correct": [0, 1, 2, 3],
+    "explanation": "Стрелочные не имеют: this, arguments, super (наследуют из окружения), prototype, нельзя вызвать через new. async-стрелочные ВОЗМОЖНЫ: async () => await fetch(...) — работает нормально."
+  },
+  {
+    "id": "this-q13",
+    "type": "choice",
+    "question": "В новом коде на React 18+ функциональных компонентов вопрос this:",
+    "options": [
+      "Так же критичен, как в классах",
+      "Почти не возникает, потому что хуки используют замыкания, а не this",
+      "Решается через useThis()",
+      "Запрещён ESLint"
+    ],
+    "correct": 1,
+    "explanation": "В функциональных компонентах нет this — есть замыкание над useState/useRef. Поэтому проблем потери контекста нет. this всё ещё спрашивают на собесах из-за класс-компонентов в legacy и общего JS-знания, но в новом коде он почти не нужен."
+  },
+  {
+    "id": "this-q14",
+    "type": "choice",
+    "question": "Что произойдёт:\n\nconst Arrow = () => {};\nnew Arrow();",
+    "options": [
+      "Создастся объект {} через стрелочный конструктор",
+      "TypeError: Arrow is not a constructor",
+      "Вызовется Arrow() как обычная функция",
+      "undefined"
+    ],
+    "correct": 1,
+    "explanation": "Стрелочные функции НЕ являются конструкторами. У них нет [[Construct]] internal slot. new Arrow() → TypeError. Для конструкторов используй обычные функции или классы."
+  },
+  {
+    "id": "this-q15",
+    "type": "input",
+    "question": "Какой паттерн исторически использовали в JS, чтобы сохранить ссылку на this перед колбэком? (популярная переменная)",
+    "answer": "self",
+    "explanation": "var self = this; (или const that = this;) — захватывали this в переменную, чтобы использовать внутри колбэка, где this уже другой. С появлением стрелочных функций паттерн стал не нужен: () => this — то же самое, но без явной переменной."
+  }
+]

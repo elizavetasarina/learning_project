@@ -1,0 +1,177 @@
+[
+  {
+    "id": "gen-q1",
+    "type": "choice",
+    "question": "Что такое дженерик в TypeScript?",
+    "options": [
+      "Тип, который может быть любым",
+      "Параметр типа — то же, что аргумент функции, но для типов. Позволяет писать обобщённый код без потери типизации",
+      "Альтернатива any",
+      "Только для интерфейсов"
+    ],
+    "correct": 1,
+    "explanation": "Дженерик — это параметр уровня типов. function first<T>(arr: T[]): T — T работает как переменная типа. TS подставит конкретный тип на основе аргумента (inference) или указанного явно. В отличие от any — типизация сохраняется."
+  },
+  {
+    "id": "gen-q2",
+    "type": "choice",
+    "question": "Чем дженерик отличается от any?",
+    "options": [
+      "Ничем",
+      "any полностью отключает проверку типов, дженерик сохраняет связь между входом и выходом",
+      "Дженерик работает только в функциях",
+      "any быстрее"
+    ],
+    "correct": 1,
+    "explanation": "function first<T>(arr: T[]): T — TS знает, что тип возврата = типу элементов. first([1,2,3]) → number. С any: first([1,2,3]): any → теряем тип. Дженерик удерживает связь типов, any — рвёт."
+  },
+  {
+    "id": "gen-q3",
+    "type": "choice",
+    "question": "Как TypeScript узнаёт, что T = number в first([1, 2, 3])?",
+    "options": [
+      "Из имени массива",
+      "Через type inference — TS выводит тип параметра T из аргумента, переданного в функцию",
+      "TypeScript угадывает",
+      "По объявлению переменной перед вызовом"
+    ],
+    "correct": 1,
+    "explanation": "Type inference — TS смотрит на аргумент (массив чисел) и выводит T = number. Указывать первый <number>([1,2,3]) можно, но обычно не нужно. Inference работает в большинстве случаев — это и есть удобство дженериков."
+  },
+  {
+    "id": "gen-q4",
+    "type": "choice",
+    "question": "Что значит <T extends { length: number }> в дженерике?",
+    "options": [
+      "T должен наследоваться от класса с length",
+      "T должен быть совместим с { length: number } — то есть иметь поле length типа number",
+      "T должен быть массивом",
+      "T расширяется новым полем"
+    ],
+    "correct": 1,
+    "explanation": "extends в дженерике — это ограничение (constraint). Внутри функции можно использовать item.length, потому что TS гарантирует — этот тип имеет length. Это НЕ наследование, а 'верхняя граница типа'."
+  },
+  {
+    "id": "gen-q5",
+    "type": "input",
+    "question": "Какое ключевое слово используется для извлечения типа из другого типа в conditional types?",
+    "answer": "infer",
+    "explanation": "infer — извлекает тип. type ReturnTypeOf<T> = T extends (...) => infer R ? R : never. Используется внутри conditional types. На основе infer построены встроенные ReturnType, Parameters, Awaited."
+  },
+  {
+    "id": "gen-q6",
+    "type": "choice",
+    "question": "Что вернёт ReturnType<() => string>?",
+    "options": ["string", "() => string", "Function", "never"],
+    "correct": 0,
+    "explanation": "ReturnType извлекает тип возврата функции. Под капотом: T extends (...args: any[]) => infer R ? R : never. Для () => string — R = string. Это одна из самых часто используемых utility types."
+  },
+  {
+    "id": "gen-q7",
+    "type": "choice",
+    "question": "Что такое keyof T?",
+    "options": [
+      "Возвращает первый ключ объекта",
+      "Тип, представляющий объединение всех ключей T (union of string literals)",
+      "Удаляет ключи из T",
+      "Конструктор из ключа"
+    ],
+    "correct": 1,
+    "explanation": "type User = {name: string, age: number}. keyof User = 'name' | 'age'. Это union строковых литералов. Используется с дженериками: getProperty<T, K extends keyof T>(obj: T, key: K) — гарантия что ключ существует."
+  },
+  {
+    "id": "gen-q8",
+    "type": "choice",
+    "question": "Когда дженерик НЕ нужен в функции?",
+    "options": [
+      "Всегда нужен — это TS лучшая практика",
+      "Когда параметр типа не используется ни в аргументах, ни в возврате (шум, можно убрать)",
+      "Когда тип примитивный",
+      "В асинхронных функциях"
+    ],
+    "correct": 1,
+    "explanation": "function greet<T>(name: string): string — T нигде не используется, бесполезный дженерик. Правило: добавляешь <T> только если он реально появляется в типах. Иначе — это просто визуальный шум, читателю кажется что-то происходит."
+  },
+  {
+    "id": "gen-q9",
+    "type": "multi",
+    "question": "Что верно про дженерики?",
+    "options": [
+      "Работают и в функциях, и в типах/интерфейсах",
+      "Могут иметь дефолтные значения <T = unknown>",
+      "Поддерживают ограничения через extends",
+      "Существуют только в TypeScript, не в рантайме",
+      "Влияют на производительность в рантайме"
+    ],
+    "correct": [0, 1, 2, 3],
+    "explanation": "Дженерики работают в function, type, interface, class. Поддерживают дефолты и constraints. Существуют ТОЛЬКО на уровне типов — в скомпилированном JS их не видно. Поэтому на рантайм не влияют (это compile-time проверка)."
+  },
+  {
+    "id": "gen-q10",
+    "type": "input",
+    "question": "Напиши utility type, который извлекает тип элемента из массива: ElementOf<number[]> = ___",
+    "answer": "number",
+    "explanation": "type ElementOf<T> = T extends Array<infer E> ? E : never. Аналог встроенного: T[number]. ElementOf<number[]> = number, ElementOf<string[]> = string. Часто спрашивают на собесе — 'как из массива получить тип элемента'."
+  },
+  {
+    "id": "gen-q11",
+    "type": "choice",
+    "question": "Что выведет TS для типа:\n\ntype X = string extends { length: number } ? 'yes' : 'no'",
+    "options": ["'no'", "'yes' — string имеет .length", "ошибка компиляции", "never"],
+    "correct": 1,
+    "explanation": "Conditional type: X = T extends U ? A : B. У string есть свойство length: number, поэтому string совместима с { length: number }, и conditional возвращает 'yes'. Это пример того, как TS считает 'совместимость' структурно."
+  },
+  {
+    "id": "gen-q12",
+    "type": "choice",
+    "question": "В type Box<T = unknown> что значит T = unknown?",
+    "options": [
+      "T всегда unknown",
+      "Дефолтный тип, если не передан явно. type X = Box → Box<unknown>, type Y = Box<string> → Box<string>",
+      "Запрещает использование дженерика",
+      "Синтаксис типа union"
+    ],
+    "correct": 1,
+    "explanation": "Дефолт работает как у аргументов функций. Если не указали — берётся unknown. Полезно для API-обёрток, где иногда не знаешь точный тип. unknown лучше any — он безопаснее (требует narrowing перед использованием)."
+  },
+  {
+    "id": "gen-q13",
+    "type": "choice",
+    "question": "Что произойдёт:\n\nfunction get<T, K extends keyof T>(obj: T, key: K): T[K] { ... }\nconst user = { name: 'A', age: 1 };\nget(user, 'wrong');",
+    "options": [
+      "Вернёт undefined в рантайме",
+      "Compile-time ошибка: Argument of type '\"wrong\"' is not assignable to parameter of type 'name' | 'age'",
+      "Сработает",
+      "Runtime exception"
+    ],
+    "correct": 1,
+    "explanation": "K extends keyof T — K может быть только реальным ключом T. keyof user = 'name' | 'age'. 'wrong' не подходит → TS не даст скомпилировать. Это и есть типобезопасный геттер: ошибки ловятся на этапе компиляции, не в рантайме."
+  },
+  {
+    "id": "gen-q14",
+    "type": "choice",
+    "question": "Зачем дженерики в Promise<T>?",
+    "options": [
+      "Для красоты",
+      "Чтобы TypeScript знал тип разрешённого значения. await Promise<string> → string",
+      "Чтобы Promise работал",
+      "Только для совместимости"
+    ],
+    "correct": 1,
+    "explanation": "Promise<T> — дженерик, где T это тип resolve-значения. await fetchUser(): Promise<User> → переменная имеет тип User. Без дженерика пришлось бы кастить вручную. Это самый частый дженерик в реальном коде после массивов."
+  },
+  {
+    "id": "gen-q15",
+    "type": "multi",
+    "question": "Какие из этих типов — встроенные utility types, использующие infer под капотом?",
+    "options": [
+      "ReturnType<T> — тип возврата функции",
+      "Parameters<T> — кортеж типов аргументов функции",
+      "Awaited<T> — тип, в который разрешается Promise",
+      "InstanceType<T> — тип экземпляра класса",
+      "MyCustomType<T>"
+    ],
+    "correct": [0, 1, 2, 3],
+    "explanation": "ReturnType, Parameters, Awaited, InstanceType — все реализованы через infer внутри conditional types. Все 'извлекают' тип из другого: ReturnType из функции, Parameters из аргументов, Awaited из промиса, InstanceType из конструктора. MyCustomType — вымышленное."
+  }
+]

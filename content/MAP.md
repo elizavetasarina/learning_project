@@ -35,11 +35,11 @@
 | 01 | Примитивы vs объекты, ссылки и значения (есть, нужен апгрейд) | ✅→💡 |
 | 02 | Замыкания глубже (написан) | ✅ |
 | 03 | Event loop базово (есть) + микро/макро (написан) | ✅ |
-| 04 | `this`, `call`/`apply`/`bind`, стрелочные функции | ⏳ |
-| 05 | Прототипы, классы, наследование | ⏳ |
+| 04 | `this`, `call`/`apply`/`bind`, стрелочные функции | ✅ |
+| 05 | Прототипы, классы, наследование | ✅ |
 | 06 | Promise глубоко: цепочки, ошибки, утечки | ⏳ |
 | 07 | async/await: ловушки и паттерны | ⏳ |
-| 08 | Equality: `==`, `===`, `Object.is`, NaN, +0/-0 | ⏳ |
+| 08 | Equality: `==`, `===`, `Object.is`, NaN, +0/-0 | ✅ |
 | 09 | Iterators, generators, `for...of` | 💡 |
 | 10 | Symbol, Map, Set, WeakMap/WeakSet | 💡 |
 
@@ -51,8 +51,8 @@
 
 | # | Тема | Статус |
 |---|------|--------|
-| 01 | Generics: основы, constraints, дефолты | ⏳ |
-| 02 | Utility types: Partial, Pick, Omit, Required, Readonly, Record | ⏳ |
+| 01 | Generics: основы, constraints, дефолты | ✅ |
+| 02 | Utility types: Partial, Pick, Omit, Required, Readonly, Record | ✅ |
 | 03 | `infer` и conditional types | ⏳ |
 | 04 | Type narrowing: type guards, discriminated unions | ⏳ |
 | 05 | `type` vs `interface`, declaration merging | ⏳ |
@@ -67,8 +67,8 @@
 
 | # | Тема | Статус |
 |---|------|--------|
-| 01 | Reconciliation, virtual DOM, Fiber | ⏳ |
-| 02 | Как работают хуки изнутри (правила хуков) | ⏳ |
+| 01 | Reconciliation, virtual DOM, Fiber | ✅ |
+| 02 | Как работают хуки изнутри (правила хуков) | ✅ |
 | 03 | useMemo / useCallback — когда РЕАЛЬНО нужно | ⏳ |
 | 04 | Context: цена и альтернативы | ⏳ |
 | 05 | Server Components в Next.js (RSC) | ⏳ |
@@ -85,7 +85,7 @@
 
 | # | Тема | Статус |
 |---|------|--------|
-| 01 | HTTP базово: методы, статусы, заголовки | ⏳ |
+| 01 | HTTP базово: методы, статусы, заголовки | ✅ |
 | 02 | Кэширование: ETag, Cache-Control, max-age, immutable | ⏳ |
 | 03 | CORS: что это, preflight, тонкости | ⏳ |
 | 04 | Rendering strategies: CSR, SSR, SSG, ISR | ⏳ |

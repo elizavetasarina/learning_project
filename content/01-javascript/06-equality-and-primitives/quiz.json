@@ -1,0 +1,145 @@
+[
+  {
+    "id": "eq-q1",
+    "type": "choice",
+    "question": "Что выведет: NaN === NaN ?",
+    "options": ["true", "false", "TypeError", "NaN"],
+    "correct": 1,
+    "explanation": "Странность IEEE 754: NaN означает 'не число', и два разных 'не число' не считаются равными. Чтобы проверить NaN корректно — Number.isNaN(x) или Object.is(x, NaN), или классический трюк x !== x."
+  },
+  {
+    "id": "eq-q2",
+    "type": "choice",
+    "question": "Что выведет: Object.is(NaN, NaN) ?",
+    "options": ["false", "true", "NaN", "TypeError"],
+    "correct": 1,
+    "explanation": "Object.is реализует SameValue из спецификации: исправляет странности ===. Object.is(NaN, NaN) → true, Object.is(+0, -0) → false. Используется в React под капотом для сравнения state."
+  },
+  {
+    "id": "eq-q3",
+    "type": "choice",
+    "question": "Что выведет: +0 === -0 ?",
+    "options": ["false", "true", "0", "NaN"],
+    "correct": 1,
+    "explanation": "По === они равны (IEEE 754: математически нули равны независимо от знака). НО Object.is(+0, -0) → false, потому что Object.is различает знак нуля. Это редко важно на практике, но любимый собесовый вопрос."
+  },
+  {
+    "id": "eq-q4",
+    "type": "choice",
+    "question": "Что выведет: [] == false ?",
+    "options": ["false", "true", "TypeError", "undefined"],
+    "correct": 1,
+    "explanation": "Цепочка приведений в ==: false → 0 (boolean to number), [] → '' (object to primitive через toString), '' → 0 (string to number), потом 0 == 0 → true. Это и есть причина «не используй ==»: непредсказуемо в крайних случаях."
+  },
+  {
+    "id": "eq-q5",
+    "type": "choice",
+    "question": "Что выведет: null == undefined ?",
+    "options": ["false", "true", "null", "ReferenceError"],
+    "correct": 1,
+    "explanation": "В алгоритме == есть специальное правило: null и undefined считаются равными только между собой. null == 0 → false (специальное исключение — null не приводится к числу через ==). Этот же случай — единственный, где == пишут осознанно: x == null означает 'x это null или undefined'."
+  },
+  {
+    "id": "eq-q6",
+    "type": "input",
+    "question": "Как называется проверка, которая возвращает true для NaN только если аргумент — действительно значение NaN (а не любое приводимое к NaN)?",
+    "answer": "Number.isNaN",
+    "explanation": "Number.isNaN — строгая проверка типа. isNaN (глобальный) приводит аргумент к числу: isNaN('foo') → true (потому что 'foo' → NaN). Number.isNaN('foo') → false (это строка, не NaN). На собесе любят спросить разницу."
+  },
+  {
+    "id": "eq-q7",
+    "type": "choice",
+    "question": "Что выведет: { a: 1 } === { a: 1 } ?",
+    "options": [
+      "true — содержимое одинаковое",
+      "false — это разные объекты, === сравнивает по ссылке",
+      "TypeError",
+      "undefined"
+    ],
+    "correct": 1,
+    "explanation": "Объекты в JS сравниваются по ССЫЛКЕ, не по содержимому. Два литерала {a:1} создают два разных объекта, ссылки разные. Чтобы сравнить содержимое — JSON.stringify (хрупко) или утилита (lodash.isEqual, dequal). Глубокого === в нативном JS нет."
+  },
+  {
+    "id": "eq-q8",
+    "type": "multi",
+    "question": "Какие из этих утверждений верны?",
+    "options": [
+      "Примитивы (string, number, boolean) сравниваются по значению",
+      "Объекты сравниваются по ссылке через ===",
+      "JSON.stringify надёжно сравнивает любые два объекта",
+      "Object.is отличает +0 и -0",
+      "isNaN и Number.isNaN — одно и то же"
+    ],
+    "correct": [0, 1, 3],
+    "explanation": "Примитивы — по значению, объекты — по ссылке, Object.is различает +0/-0. JSON.stringify ненадёжен (Date, undefined, циклы, разный порядок ключей). isNaN ≠ Number.isNaN (первый приводит к числу, второй — строгая проверка)."
+  },
+  {
+    "id": "eq-q9",
+    "type": "choice",
+    "question": "Что нужно для React, чтобы перерендерить компонент после изменения объекта в useState?",
+    "options": [
+      "Изменить поле объекта напрямую: user.name = 'X'; setUser(user)",
+      "Передать новый объект с тем же содержимым: setUser({ ...user })",
+      "Вызвать setUser дважды",
+      "Использовать useEffect"
+    ],
+    "correct": 1,
+    "explanation": "React сравнивает state через Object.is (по ссылке). Если ссылка та же — React считает 'ничего не изменилось'. Поэтому всегда: setUser({ ...user, name: 'X' }) — новый объект → новая ссылка → ре-рендер. Прямое изменение поля + старая ссылка = немое обновление, баг."
+  },
+  {
+    "id": "eq-q10",
+    "type": "input",
+    "question": "Сколько примитивных типов в JavaScript (включая symbol и bigint)?",
+    "answer": "7",
+    "explanation": "string, number, boolean, null, undefined, symbol, bigint = 7. Всё остальное (объекты, массивы, функции, Date, Map, Set, Promise) — это объекты."
+  },
+  {
+    "id": "eq-q11",
+    "type": "choice",
+    "question": "Что выведет: 0 == '' ?",
+    "options": ["false", "true", "TypeError", "NaN"],
+    "correct": 1,
+    "explanation": "В ==: '' → 0 (string to number), потом 0 == 0 → true. Один из классических примеров, почему loose equality опасен в нормировании входных данных (например, проверка 'value пустой?' через value == '' не отделит 0 от '')."
+  },
+  {
+    "id": "eq-q12",
+    "type": "multi",
+    "question": "В каких случаях разумно использовать ==?",
+    "options": [
+      "Проверка x == null (одновременно null или undefined)",
+      "Сравнение строки с числом для удобства",
+      "Сравнение boolean'ов между собой",
+      "Никогда — всегда === лучше"
+    ],
+    "correct": [0],
+    "explanation": "x == null — единственный осознанный паттерн (короче, чем x === null || x === undefined). Всё остальное — лучше ===. ESLint обычно отключает == везде, кроме этого случая через no-eq-null."
+  },
+  {
+    "id": "eq-q13",
+    "type": "choice",
+    "question": "Алгоритм == для сравнения объекта и примитива использует:",
+    "options": [
+      "Только JSON.stringify",
+      "Метод valueOf() или toString() для приведения объекта к примитиву",
+      "Хеш объекта",
+      "Сравнение всех ключей рекурсивно"
+    ],
+    "correct": 1,
+    "explanation": "При == объект приводится к примитиву через ToPrimitive. Алгоритм: вызывает Symbol.toPrimitive (если есть), потом valueOf(), потом toString(). [].toString() → '', {}.toString() → '[object Object]'. Это объясняет хрупкость == с объектами."
+  },
+  {
+    "id": "eq-q14",
+    "type": "choice",
+    "question": "Что выведет:\n\nconst a = NaN;\nconst arr = [1, 2, NaN, 4];\narr.indexOf(a)",
+    "options": ["-1", "2", "false", "TypeError"],
+    "correct": 0,
+    "explanation": "indexOf использует === под капотом. NaN === NaN → false → indexOf не находит → -1. Чтобы найти NaN в массиве — используй arr.includes(NaN) (он использует SameValueZero, который различает NaN === NaN корректно)."
+  },
+  {
+    "id": "eq-q15",
+    "type": "input",
+    "question": "Какой оператор лучше использовать для сравнения, чтобы NaN === NaN дал true, а +0 === -0 дал false (как в React useState)?",
+    "answer": "Object.is",
+    "explanation": "Object.is реализует SameValue. Это «исправленный» ===, без странностей IEEE 754. React использует его под капотом для сравнения state и сравнения dependencies в хуках."
+  }
+]
