@@ -1,20 +1,6 @@
 import { validateInitData } from "./telegram-auth";
 import { prisma } from "./prisma";
-
-// ─── Хелперы для дат ────────────────────────────────────────
-
-/** Обнуляем часы/минуты/секунды — получаем начало дня в UTC */
-function startOfDayUTC(date: Date): Date {
-  const d = new Date(date);
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
-}
-
-/** Разница в днях между двумя датами (обе должны быть началом дня) */
-function daysBetween(a: Date, b: Date): number {
-  const MS_PER_DAY = 24 * 60 * 60 * 1000;
-  return Math.round((b.getTime() - a.getTime()) / MS_PER_DAY);
-}
+import { startOfDayInTz, daysBetweenInTz } from "./datetime";
 
 /**
  * Тип пользователя, выведенный из Prisma-схемы.
@@ -47,33 +33,30 @@ type AuthResult =
  * 1. Извлечение initData из заголовка X-Init-Data
  * 2. HMAC-валидация (подпись от Telegram)
  * 3. Upsert пользователя в БД (создать или обновить)
+ * 4. Сохранение таймзоны юзера из заголовка X-Timezone
+ * 5. Пересчёт стрика и дневного XP в таймзоне юзера
  */
 export async function authenticateRequest(
   request: Request
 ): Promise<AuthResult> {
   // 1. Достаём initData из заголовка.
-  //    Почему заголовок, а не тело запроса?
-  //    - Работает для любого HTTP-метода (GET, POST, PUT...)
-  //    - Не загрязняет body бизнес-данными
-  //    - Стандартный паттерн (как Authorization: Bearer ...)
   const initData = request.headers.get("x-init-data");
-
   if (!initData) {
     return { ok: false, error: "Missing initData", status: 401 };
   }
 
+  // Таймзона юзера приходит отдельным заголовком.
+  // Клиент берёт её через Intl.DateTimeFormat().resolvedOptions().timeZone.
+  // Может быть undefined — тогда фолбэк на UTC в datetime.ts.
+  const tzHeader = request.headers.get("x-timezone") || undefined;
+
   // 2. Проверяем подпись
   const validation = validateInitData(initData);
-
   if (!validation.ok) {
     return { ok: false, error: validation.error, status: 401 };
   }
 
-  // 3. Upsert: создаём юзера при первом визите, обновляем при повторном.
-  //    prisma.user.upsert() — одна операция вместо "findFirst → if null → create":
-  //    - where: ищем по telegramId
-  //    - create: если не нашли — создаём с этими данными
-  //    - update: если нашли — обновляем имя/username (могли измениться в Telegram)
+  // 3. Upsert: создаём при первом визите, обновляем при повторном.
   try {
     const user = await prisma.user.upsert({
       where: { telegramId: BigInt(validation.user.id) },
@@ -82,62 +65,69 @@ export async function authenticateRequest(
         firstName: validation.user.first_name,
         username: validation.user.username ?? null,
         languageCode: validation.user.language_code ?? null,
+        // Если клиент уже прислал tz — сохраняем сразу при создании
+        timezone: tzHeader ?? null,
       },
       update: {
-        // Обновляем данные — юзер мог сменить имя или username в Telegram
         firstName: validation.user.first_name,
         username: validation.user.username ?? null,
+        // undefined → Prisma пропустит поле и не затрёт существующее значение.
+        // Это важно: tz могла быть сохранена раньше, не хотим её обнулять,
+        // если клиент по какой-то причине не прислал заголовок.
+        timezone: tzHeader ?? undefined,
       },
     });
+
+    // Эффективная таймзона: только что пришедшая или сохранённая, фолбэк UTC.
+    const effectiveTz = tzHeader ?? user.timezone ?? null;
 
     // Обновляем активность и стрик с throttle: не чаще раза в час.
     const ONE_HOUR = 60 * 60 * 1000;
     const lastActivity = user.lastActivityAt?.getTime() ?? 0;
 
     if (Date.now() - lastActivity > ONE_HOUR) {
-      // Считаем стрик: сравниваем дату последней активности с сегодня.
-      // Все даты приводим к началу дня (UTC) для корректного сравнения.
-      const today = startOfDayUTC(new Date());
+      // ВАЖНО: все сравнения дней — в таймзоне юзера.
+      // Если юзер в МСК заходит в 00:30 МСК — это уже новый день для него,
+      // даже если в UTC ещё 21:30 предыдущих суток.
+      const now = new Date();
+      const today = startOfDayInTz(now, effectiveTz);
       const lastDay = user.lastActivityAt
-        ? startOfDayUTC(user.lastActivityAt)
+        ? startOfDayInTz(user.lastActivityAt, effectiveTz)
         : null;
 
       let newStreak = user.currentStreak;
 
       if (!lastDay) {
-        // Первый визит — стрик = 1
         newStreak = 1;
       } else {
-        const diffDays = daysBetween(lastDay, today);
+        const diffDays = daysBetweenInTz(lastDay, today, effectiveTz);
         if (diffDays === 0) {
-          // Тот же день — стрик не меняется
+          // Тот же локальный день — стрик не меняется
         } else if (diffDays === 1) {
-          // Следующий день — стрик растёт
           newStreak = user.currentStreak + 1;
         } else {
-          // Пропуск 2+ дней — стрик сброшен, начинаем с 1
           newStreak = 1;
         }
       }
 
       const newLongest = Math.max(newStreak, user.longestStreak);
 
-      // Сброс дневного XP: если dailyXpDate не сегодня — обнуляем
+      // Сброс dailyXp: если dailyXpDate относится к другому локальному дню — обнуляем
       const dailyXpDay = user.dailyXpDate
-        ? startOfDayUTC(user.dailyXpDate)
+        ? startOfDayInTz(user.dailyXpDate, effectiveTz)
         : null;
-      const isNewDay = !dailyXpDay || daysBetween(dailyXpDay, today) > 0;
+      const isNewDay =
+        !dailyXpDay || daysBetweenInTz(dailyXpDay, today, effectiveTz) > 0;
       const newDailyXp = isNewDay ? 0 : user.dailyXp;
 
-      // fire-and-forget: не блокируем ответ
       prisma.user
         .update({
           where: { id: user.id },
           data: {
-            lastActivityAt: new Date(),
+            lastActivityAt: now,
             currentStreak: newStreak,
             longestStreak: newLongest,
-            ...(isNewDay && { dailyXp: 0, dailyXpDate: new Date() }),
+            ...(isNewDay && { dailyXp: 0, dailyXpDate: now }),
           },
         })
         .catch(() => {});
@@ -146,7 +136,7 @@ export async function authenticateRequest(
       user.currentStreak = newStreak;
       user.longestStreak = newLongest;
       user.dailyXp = newDailyXp;
-      user.lastActivityAt = new Date();
+      user.lastActivityAt = now;
     }
 
     return { ok: true, user };

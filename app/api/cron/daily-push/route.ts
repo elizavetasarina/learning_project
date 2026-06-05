@@ -48,6 +48,7 @@ export async function GET(request: Request) {
       dailyXp: true,
       dailyGoal: true,
       lastActivityAt: true,
+      timezone: true,
     },
   });
 

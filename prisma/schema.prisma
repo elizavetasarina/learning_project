@@ -26,6 +26,9 @@ model User {
   dailyGoal      Int      @default(50) @map("daily_goal")
   dailyXp        Int      @default(0) @map("daily_xp")
   dailyXpDate    DateTime? @map("daily_xp_date")
+  // IANA tz юзера (например "Europe/Moscow"). null = считаем по UTC.
+  // Клиент шлёт в заголовке X-Timezone, сервер сохраняет здесь.
+  timezone       String?
   lastActivityAt DateTime? @map("last_activity_at")
 
   // Связь один-ко-многим: у юзера много записей прогресса

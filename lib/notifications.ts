@@ -16,6 +16,8 @@ export interface NotificationUser {
   dailyGoal: number;
   /** Когда юзер последний раз был активен. Может быть null если ни разу */
   lastActivityAt: Date | null;
+  /** IANA-таймзона юзера ("Europe/Moscow"). null = считаем по UTC */
+  timezone: string | null;
 }
 
 /** Результат выбора: текст и текст кнопки. URL добавляется в cron */
@@ -25,17 +27,7 @@ export interface Notification {
   buttonText: string;
 }
 
-// ─── Хелперы для дат ────────────────────────────────────────
-
-/** Разница в полных днях между двумя датами (по UTC). */
-function daysSince(date: Date, now: Date): number {
-  const MS = 24 * 60 * 60 * 1000;
-  const a = new Date(date);
-  a.setUTCHours(0, 0, 0, 0);
-  const b = new Date(now);
-  b.setUTCHours(0, 0, 0, 0);
-  return Math.round((b.getTime() - a.getTime()) / MS);
-}
+import { daysBetweenInTz } from "./datetime";
 
 // ─── Пороги ─────────────────────────────────────────────────
 
@@ -65,7 +57,12 @@ export function pickNotification(
   // Юзер вообще ничего не делал — пока не трогаем (логика onboarding'а отдельна)
   if (!user.lastActivityAt) return null;
 
-  const daysSinceLastActivity = daysSince(user.lastActivityAt, now);
+  // Считаем дни в таймзоне юзера: для МСК «вчера» != UTC-вчера на 3 часа.
+  const daysSinceLastActivity = daysBetweenInTz(
+    user.lastActivityAt,
+    now,
+    user.timezone,
+  );
 
   // Cutoff: давно отвалившихся не пушим, чтобы не быть спамом
   if (daysSinceLastActivity > STALE_THRESHOLD_DAYS) return null;

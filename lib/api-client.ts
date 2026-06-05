@@ -13,6 +13,19 @@ function getInitData(): string | undefined {
   return window.Telegram?.WebApp?.initData || undefined;
 }
 
+/**
+ * IANA-таймзона юзера, как её видит браузер: "Europe/Moscow", "Asia/Tokyo" и т.д.
+ * Это нативный браузерный API, никаких либ. Возвращает undefined в самых старых
+ * браузерах — тогда сервер фолбэкнется на UTC.
+ */
+function getTimezone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /** Общая обёртка: добавляет заголовок и парсит ответ */
 async function apiRequest<T>(
   url: string,
@@ -27,12 +40,16 @@ async function apiRequest<T>(
   }
 
   try {
+    const tz = getTimezone();
+
     const response = await fetch(url, {
       ...options,
       headers: {
         ...options.headers,
         // Наш кастомный заголовок — сервер достанет и проверит подпись
         "X-Init-Data": initData,
+        // Таймзона юзера — сервер сохранит и будет считать стрики в его дне
+        ...(tz && { "X-Timezone": tz }),
         "Content-Type": "application/json",
       },
     });
