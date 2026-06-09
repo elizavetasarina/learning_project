@@ -3,6 +3,7 @@ import {
   fetchProgress,
   saveProgress,
   fetchDueReviews,
+  updateDailyGoal,
   type LessonProgressData,
   type QuestionAnswer,
   type UserData,
@@ -51,6 +52,12 @@ interface ProgressActions {
   ) => Promise<string | null>;
   /** Уменьшить счётчик «к повтору» (оптимистичное обновление) */
   decrementDue: () => void;
+  /**
+   * Поменять дневную цель.
+   * Оптимистично применяет, шлёт PATCH на сервер.
+   * На ошибке откатывает. Возвращает null = ok, string = ошибка.
+   */
+  setDailyGoal: (value: number) => Promise<string | null>;
 }
 
 // ─── Store ──────────────────────────────────────────────────
@@ -138,6 +145,24 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
 
     decrementDue: () => {
       set({ dueCount: Math.max(0, get().dueCount - 1) });
+    },
+
+    setDailyGoal: async (value) => {
+      const prevUser = get().userData;
+      if (!prevUser) return "User data not loaded yet";
+
+      // Оптимистично применяем — UI мгновенный
+      set({ userData: { ...prevUser, dailyGoal: value } });
+
+      const result = await updateDailyGoal(value);
+      if (!result.ok) {
+        // Откат: вернуть прежнее значение
+        set({ userData: prevUser });
+        return result.error;
+      }
+      // На успехе — серверное значение (на случай нормализации)
+      set({ userData: { ...prevUser, dailyGoal: result.data.dailyGoal } });
+      return null;
     },
   })
 );

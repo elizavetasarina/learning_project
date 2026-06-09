@@ -1,0 +1,188 @@
+[
+  {
+    "id": "prom-q1",
+    "type": "choice",
+    "question": "В каких трёх состояниях может находиться Promise?",
+    "options": [
+      "loading / done / error",
+      "pending / fulfilled / rejected",
+      "open / closed / failed",
+      "waiting / resolved / cancelled"
+    ],
+    "correct": 1,
+    "explanation": "Promise — это state machine с состояниями pending (в процессе), fulfilled (успех), rejected (ошибка). Fulfilled и rejected вместе называют settled (улаженный). Переход из pending в settled необратим и происходит ровно один раз."
+  },
+  {
+    "id": "prom-q2",
+    "type": "choice",
+    "question": "Что произойдёт при повторном вызове resolve внутри Promise?\n\nnew Promise((resolve) => { resolve(1); resolve(2); })",
+    "options": [
+      "Promise разрешится значением 2",
+      "Будет TypeError",
+      "Promise разрешится значением 1, второй resolve молча игнорируется",
+      "Оба resolve выполнятся последовательно"
+    ],
+    "correct": 2,
+    "explanation": "Переход из pending в fulfilled или rejected необратим — Promise меняет состояние ОДИН раз. Повторные resolve/reject молча игнорируются. Это защищает от race condition в executor'е."
+  },
+  {
+    "id": "prom-q3",
+    "type": "choice",
+    "question": "Что возвращает .then()?",
+    "options": [
+      "Тот же самый Promise",
+      "Значение из коллбэка",
+      "Новый Promise, который разрешится тем, что вернёт коллбэк",
+      "undefined"
+    ],
+    "correct": 2,
+    "explanation": "Это ключ к цепочкам. .then() ВСЕГДА создаёт новый Promise. Если коллбэк вернул значение — новый Promise разрешается им. Если вернул Promise — новый Promise ждёт его. Если бросил исключение — новый Promise отвергается. Именно поэтому можно строить .then().then().then()."
+  },
+  {
+    "id": "prom-q4",
+    "type": "choice",
+    "question": "Что выведет:\n\nPromise.resolve(1)\n  .then(x => x + 1)\n  .then(x => Promise.resolve(x * 2))\n  .then(console.log);",
+    "options": ["1", "2", "4", "Promise"],
+    "correct": 2,
+    "explanation": "Шаг 1: resolve(1) → 1. Шаг 2: 1+1 = 2 → новый Promise<2>. Шаг 3: возврат Promise<2*2=4> → новый Promise ждёт этот внутренний и разрешается значением 4. Шаг 4: console.log(4). Promise автоматически 'разворачивает' возвращённые Promise'ы."
+  },
+  {
+    "id": "prom-q5",
+    "type": "choice",
+    "question": "Промис отвергся в success-коллбэке then. Поймает ли его error-аргумент в этом же then?\n\np.then(\n  val => { throw new Error('inside'); },\n  err => console.log('caught:', err)\n);",
+    "options": [
+      "Да, error-аргумент поймает 'inside'",
+      "Нет — error-аргумент ловит только ошибки, которые произошли ДО этого then. Ошибки из success-коллбэка ловит следующий .catch",
+      "Будет двойной throw",
+      "Зависит от реализации"
+    ],
+    "correct": 1,
+    "explanation": "Ловушка. .then(success, error) — error ловит отвержения из ПРЕДЫДУЩИХ звеньев цепочки, не из success этого же then. Поэтому всегда лучше использовать .then(success).catch(error) — catch ловит ошибки от любого этапа выше."
+  },
+  {
+    "id": "prom-q6",
+    "type": "choice",
+    "question": "Promise.all отверг, если хотя бы один Promise отвергся. Что произойдёт с остальными?",
+    "options": [
+      "Они автоматически отменяются",
+      "Они продолжат выполняться, но их результаты теряются — Promise.all уже отверг",
+      "Они тоже отвергаются",
+      "Они зависают навсегда"
+    ],
+    "correct": 1,
+    "explanation": "Promise не имеет встроенной отмены. Когда один Promise.all-аргумент отверг, Promise.all сразу отвергается. Остальные Promise'ы продолжают выполняться в фоне (запросы, побочные эффекты), но их результаты никому не нужны. Если нужна реальная отмена — AbortController."
+  },
+  {
+    "id": "prom-q7",
+    "type": "choice",
+    "question": "Чем Promise.allSettled отличается от Promise.all?",
+    "options": [
+      "Ничем",
+      "allSettled ждёт ВСЕХ (даже если что-то отвергается) и возвращает массив { status, value/reason }. all отвергается при первой ошибке",
+      "allSettled работает быстрее",
+      "allSettled принимает только resolve"
+    ],
+    "correct": 1,
+    "explanation": "Promise.allSettled никогда не отвергается. Результат — массив объектов с status: 'fulfilled' (есть value) или status: 'rejected' (есть reason). Нужен когда частичный успех ценен (дашборд с несколькими виджетами — даже если один упал, остальное должно показаться)."
+  },
+  {
+    "id": "prom-q8",
+    "type": "choice",
+    "question": "Promise.race резолвится:",
+    "options": [
+      "Только когда все Promise'ы успешны",
+      "Когда первый Promise становится settled — fulfilled или rejected, без разницы",
+      "Когда самый быстрый успешный Promise завершится",
+      "Никогда"
+    ],
+    "correct": 1,
+    "explanation": "race = гонка. Возвращает первый settled — успешный или отвергнутый. Классическое применение — timeout: race между основным запросом и setTimeout(reject) на N мс. Кто первый — тот и победил."
+  },
+  {
+    "id": "prom-q9",
+    "type": "choice",
+    "question": "Чем Promise.any отличается от Promise.race?",
+    "options": [
+      "Ничем",
+      "any игнорирует отказы и берёт первый FULFILLED. Если все отверглись — отвергается AggregateError с массивом всех ошибок",
+      "any работает только с fetch",
+      "any может вернуть несколько значений"
+    ],
+    "correct": 1,
+    "explanation": "Promise.any специально для 'возьми тот, кто сработал'. Отказы скипает, ждёт первый успех. Если ВСЕ отверглись — отдаёт AggregateError (новый тип ошибки с .errors массивом). Используется для fallback на зеркала."
+  },
+  {
+    "id": "prom-q10",
+    "type": "multi",
+    "question": "Что является микротаской?",
+    "options": [
+      "Коллбэк .then",
+      "Коллбэк .catch",
+      "Коллбэк .finally",
+      "Код после await",
+      "setTimeout(fn, 0)",
+      "queueMicrotask(fn)"
+    ],
+    "correct": [0, 1, 2, 3, 5],
+    "explanation": "Все колбэки Promise (then/catch/finally), код после await (это сахар над then), queueMicrotask, MutationObserver — микротаски. setTimeout — макротаска. Микротаски выполняются ПЕРЕД любой следующей макротаской."
+  },
+  {
+    "id": "prom-q11",
+    "type": "choice",
+    "question": "Что выведет:\n\nasync function f() {\n  console.log('1');\n  await Promise.resolve();\n  console.log('2');\n}\nf();\nconsole.log('3');",
+    "options": [
+      "1 2 3",
+      "1 3 2",
+      "3 1 2",
+      "2 3 1"
+    ],
+    "correct": 1,
+    "explanation": "await — это синтаксический сахар над .then. Код ПОСЛЕ await становится колбэком .then, то есть микротаской. Поэтому: 1 (синхронно из f), 3 (синхронно после вызова f), 2 (микротаска после стека)."
+  },
+  {
+    "id": "prom-q12",
+    "type": "choice",
+    "question": "Что вернёт async function loadUser()?",
+    "options": [
+      "User объект синхронно",
+      "Promise<User> — async-функции ВСЕГДА возвращают Promise",
+      "undefined",
+      "Зависит от содержимого"
+    ],
+    "correct": 1,
+    "explanation": "Ключевое: async-функция всегда возвращает Promise. Если внутри 'return user' — возврат это Promise<User>. Если throw — Promise rejected. Если ничего не возвращает — Promise<undefined>. Это и есть смысл async: контракт 'вернёт Promise'."
+  },
+  {
+    "id": "prom-q13",
+    "type": "choice",
+    "question": "Какая ошибка в этом коде?\n\nconst user = await fetchUser();\nconst posts = await fetchPosts();\nconst comments = await fetchComments();",
+    "options": [
+      "Нет ошибки, всё правильно",
+      "Запросы независимы, но идут последовательно — теряем время. Параллельно через Promise.all было бы в N раз быстрее",
+      "Нельзя await вне async",
+      "fetchUser должен возвращать Promise"
+    ],
+    "correct": 1,
+    "explanation": "Последовательный await блокирует. Если запросы НЕЗАВИСИМЫ — параллельте: const [user, posts, comments] = await Promise.all([fetchUser(), fetchPosts(), fetchComments()]). Время выполнения = max, а не сумма."
+  },
+  {
+    "id": "prom-q14",
+    "type": "input",
+    "question": "Как называется ошибка, когда Promise отверг, а .catch (или try/catch) не написан?",
+    "answer": "unhandled rejection",
+    "explanation": "Unhandled Promise Rejection — warning в Node и браузере. В будущем — будет crash приложения. Каждый Promise, который МОЖЕТ отвергнуться, должен иметь .catch или await внутри try/catch. Глобально можно ловить через window.onunhandledrejection / process.on('unhandledRejection')."
+  },
+  {
+    "id": "prom-q15",
+    "type": "choice",
+    "question": "Что выведет .finally?\n\nPromise.resolve(1)\n  .finally(() => 999)\n  .then(x => console.log(x));",
+    "options": [
+      "999 — finally вернула 999",
+      "1 — возврат из finally игнорируется, значение не меняется",
+      "undefined",
+      "TypeError"
+    ],
+    "correct": 1,
+    "explanation": "finally — для cleanup без влияния на цепочку. Возврат из finally игнорируется, значение Promise сохраняется. Исключение: если в finally бросить ошибку — Promise отвергнется этой ошибкой. Поэтому в finally — только 'тихий' cleanup."
+  }
+]

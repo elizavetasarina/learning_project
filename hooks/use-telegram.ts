@@ -6,6 +6,13 @@ interface TelegramState {
   user: TelegramWebAppUser | null;
   colorScheme: "light" | "dark";
   isReady: boolean;
+  /**
+   * Доступна ли нативная MainButton.
+   * Используется компонентами, чтобы решить — рендерить ли свою
+   * кастомную кнопку (fallback) или скрыть в пользу нативной.
+   * На SSR / в браузере вне Telegram = false.
+   */
+  hasMainButton: boolean;
 }
 
 export function useTelegram(): TelegramState {
@@ -13,6 +20,7 @@ export function useTelegram(): TelegramState {
     user: null,
     colorScheme: "light",
     isReady: false,
+    hasMainButton: false,
   });
 
   useEffect(() => {
@@ -37,6 +45,7 @@ export function useTelegram(): TelegramState {
       user: webApp.initDataUnsafe.user ?? null,
       colorScheme: webApp.colorScheme,
       isReady: true,
+      hasMainButton: !!webApp.MainButton,
     });
   }, []);
 

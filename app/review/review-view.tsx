@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   CheckCircle,
@@ -16,6 +17,10 @@ import {
 } from "@/lib/api-client";
 import { isAnswerCorrect } from "@/lib/quiz";
 import { useProgressStore } from "@/store/progress";
+import * as haptic from "@/lib/haptic";
+import { useTelegramBackButton } from "@/hooks/use-telegram-back-button";
+import { useTelegramMainButton } from "@/hooks/use-telegram-main-button";
+import { useTelegram } from "@/hooks/use-telegram";
 
 /**
  * Экран сессии повторения (spaced repetition).
@@ -37,6 +42,14 @@ type AnswerRecord = {
 };
 
 export function ReviewView() {
+  // Нативная кнопка «назад» — на главную
+  const router = useRouter();
+  const goBack = useCallback(() => router.push("/"), [router]);
+  useTelegramBackButton(goBack);
+
+  // Прячем кастомные нижние кнопки, если есть нативная MainButton
+  const { hasMainButton } = useTelegram();
+
   // ─── Загрузка ─────────────────────────────────────────────
   const [items, setItems] = useState<ReviewSessionItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +78,32 @@ export function ReviewView() {
   const isLast = total > 0 && index === total - 1;
   const isFinished = total > 0 && history.length === total;
 
+  // ─── Нативная MainButton ──────────────────────────────────
+  // Должна быть ДО всех early-returns (правила хуков).
+  // Видимость гасим через isVisible когда мы не на активном вопросе.
+  const showMainBtn = !!current && !isFinished;
+  function hasCurrentAnswer(): boolean {
+    if (!current) return false;
+    if (currentAnswer === undefined) return false;
+    if (current.question.type === "multi") {
+      return (currentAnswer as number[]).length > 0;
+    }
+    return true;
+  }
+  useTelegramMainButton({
+    text: !showResult
+      ? "Проверить"
+      : isLast
+        ? "Завершить"
+        : "Следующий",
+    isVisible: showMainBtn,
+    isActive: showResult || hasCurrentAnswer(),
+    onClick: () => {
+      if (!showResult) handleCheck();
+      else handleNext();
+    },
+  });
+
   // ─── Обработчики ──────────────────────────────────────────
   function setMultiAnswer(optionIndex: number) {
     const arr = (currentAnswer as number[] | undefined) ?? [];
@@ -75,17 +114,12 @@ export function ReviewView() {
     }
   }
 
-  function hasAnswer(): boolean {
-    if (!current) return false;
-    if (currentAnswer === undefined) return false;
-    if (current.question.type === "multi") {
-      return (currentAnswer as number[]).length > 0;
-    }
-    return true;
-  }
-
   function handleCheck() {
     if (!current) return;
+    // Тактильный отклик: успех или ошибка по результату ответа
+    const correct = isAnswerCorrect(current.question, currentAnswer);
+    if (correct) haptic.success();
+    else haptic.error();
     setShowResult(true);
   }
 
@@ -353,12 +387,13 @@ export function ReviewView() {
           </div>
         )}
 
-        {/* Кнопка снизу */}
+        {/* Кнопка снизу — fallback для клиентов без MainButton (dev) */}
+        {!hasMainButton && (
         <div className="mt-auto pt-6">
           {!showResult ? (
             <button
               type="button"
-              disabled={!hasAnswer()}
+              disabled={!hasCurrentAnswer()}
               onClick={handleCheck}
               className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-text transition-all disabled:opacity-40 active:scale-[0.97]"
             >
@@ -380,6 +415,7 @@ export function ReviewView() {
             </button>
           )}
         </div>
+        )}
       </div>
     </div>
   );

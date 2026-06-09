@@ -1,13 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, Eye } from "lucide-react";
 import { LessonContent } from "./lesson-content";
 import { QuizView } from "./quiz-view";
 import { useQuizStore } from "@/store/quiz";
 import { pluralize } from "@/lib/pluralize";
 import { initReviews } from "@/lib/api-client";
+import { useTelegramBackButton } from "@/hooks/use-telegram-back-button";
 import type { Question } from "@/types/content";
 
 /**
@@ -42,6 +44,13 @@ export function LessonView({
   const [activeTab, setActiveTab] = useState<Tab>("theory");
   const [showPeekDialog, setShowPeekDialog] = useState(false);
   const hasQuiz = questions.length > 0;
+
+  // Нативная Telegram-кнопка «назад» — на /lessons.
+  // useCallback нужен, потому что useTelegramBackButton перепривязывает
+  // обработчик при изменении ссылки. Стабильная ссылка = одна привязка.
+  const router = useRouter();
+  const goBack = useCallback(() => router.push("/lessons"), [router]);
+  useTelegramBackButton(goBack);
 
   // Eager-инициализация SR при открытии урока.
   // Дёргаем POST /api/reviews/init с slug + id вопросов: сервер создаст

@@ -301,7 +301,7 @@ review_schedule
 
 **Контент:** 7 уроков. Реально использую приложение для подготовки.
 
-### 🔄 Неделя 5-6: Spaced repetition и марафон
+### ✅ Неделя 5-6: Spaced repetition (MVP закрыт)
 
 **Технические задачи:**
 
@@ -312,11 +312,22 @@ review_schedule
 - ✅ `GET /api/reviews/due` + жёлтая карточка «К повтору: N» на главной
 - ✅ `GET /api/reviews/session` (полные данные вопросов) + `POST /api/reviews/answer` (один ответ)
 - ✅ Страница `/review` — клиентский квиз-флоу с финальной статистикой
-- ⏳ Статистика по темам
-- ⏳ Марафон 250 вопросов (рандомная выборка без SR)
-- ⏳ Опционально: экспорт прогресса
+- ⏳ Статистика по темам (отложено)
+- ⏳ Марафон 250 вопросов (отложено — нужно сначала больше контента)
 
-**Контент:** 20+ уроков, полноценный курс.
+**Контент:** 15 уроков на момент закрытия MVP. Цель — 25-30 для полноценного курса.
+
+### ✅ Полировка UX (между неделями 5-6 и неделей 7)
+
+- ✅ Edit dailyGoal через модалку (PATCH /api/user/settings + optimistic update + откат)
+- ✅ Аккордеон модулей с persistence (Set ↔ array для JSON-сериализации)
+- ✅ Плавная анимация раскрытия модулей через CSS Grid (`0fr → 1fr` трюк)
+- ✅ Telegram CloudStorage с fallback на localStorage (lib/client-storage, hooks/use-storage)
+- ✅ HapticFeedback (success на правильный ответ / достижение цели, error на ошибку)
+- ✅ Telegram BackButton API (нативная «назад» в шапке)
+- ✅ Telegram MainButton API (нативная нижняя кнопка с прогресс-индикатором)
+- ✅ Анимированный XP-счётчик через requestAnimationFrame + easeOutCubic
+- ✅ **Сильный README** для портфолио (архитектура, tradeoffs, ссылки на код)
 
 ### Неделя 7-8: Полировка и AI-ментор
 
@@ -548,14 +559,26 @@ review_schedule
 - ✅ Eager-init записей при открытии урока (idempotent через `createMany skipDuplicates`)
 - ✅ Lookup групп файлов через Map — избегаем N+1 при чтении уроков из FS
 
-**Следующая сессия (на выбор):**
+**Полировка UX — готово:**
 
-- Записать урок про SM-2 и SR в `05-this-project` — свежо, собесовая тема
-- Записать урок про raw SQL casts (`05-this-project/03-raw-sql-prisma-casts/`)
-- Записать урок про IANA timezones + Intl.DateTimeFormat
-- Доделать неделю 5-6: статистика по темам, марафон 250 вопросов
-- Дописать модули `02-typescript`, `03-react`, `04-network-perf` (есть приоритеты в `content/MAP.md`)
-- Полировка геймификации: открытые модули в localStorage, плавные анимации, edit dailyGoal в UI
+- ✅ Edit dailyGoal (модалка + PATCH + optimistic update)
+- ✅ Аккордеон с persistence в CloudStorage + плавная CSS Grid анимация
+- ✅ Haptic + BackButton + MainButton + анимированный XP-счётчик
+- ✅ Сильный README для портфолио
+
+**Текущий контент:** 15 уроков по 5 модулям:
+- `01-javascript` — 8 уроков (типы, замыкания×2, event loop, micro/macro, equality, this, prototypes)
+- `02-typescript` — 2 урока (generics, utility types)
+- `03-react` — 2 урока (reconciliation, hooks)
+- `04-network-perf` — 1 урок (HTTP basics)
+- `05-this-project` — 2 урока (architecture, HMAC deep)
+
+**Следующая сессия (план):**
+
+1. **Контент** — ещё 6-10 уроков по приоритетам `content/MAP.md` (Promise, async/await, narrowing, useMemo/useCallback, RSC, caching, CORS, BackButton/MainButton разбор, SM-2 разбор, lazy reset разбор)
+2. **README polish** — скриншоты (4-6 штук в Telegram), демо-видео
+3. **Полевой тест** — кидаешь ссылку 3-5 фронт-знакомым с чек-листом «что проверить»
+4. **По фидбэку** — статистика, марафон, AI-ментор
 
 ---
 

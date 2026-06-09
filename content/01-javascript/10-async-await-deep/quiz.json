@@ -1,0 +1,187 @@
+[
+  {
+    "id": "aa-q1",
+    "type": "choice",
+    "question": "В чём проблема:\n\nconst user = await fetchUser();\nconst posts = await fetchPosts();\nconst tags = await fetchTags();",
+    "options": [
+      "Нет проблемы",
+      "Если запросы независимы — теряем время. Они идут ПОСЛЕДОВАТЕЛЬНО, должны параллельно через Promise.all",
+      "fetchUser должен быть sync",
+      "Нельзя 3 await подряд"
+    ],
+    "correct": 1,
+    "explanation": "Каждый await блокирует следующую строку до резолва. 3 запроса по 200мс = 600мс. Параллельно через Promise.all: время = max = 200мс. Последовательность нужна ТОЛЬКО когда следующий запрос зависит от предыдущего (например, user.id для fetchPosts)."
+  },
+  {
+    "id": "aa-q2",
+    "type": "choice",
+    "question": "Что вернёт:\n\nasync function f() {\n  return 42;\n}\nconst x = f();",
+    "options": [
+      "42",
+      "Promise<42>",
+      "undefined",
+      "ошибка"
+    ],
+    "correct": 1,
+    "explanation": "async-функция ВСЕГДА возвращает Promise. return 42 → Promise<42>. throw error → Promise<rejected>. Без await получаем сам Promise, чтобы получить значение нужно await x или x.then(...)."
+  },
+  {
+    "id": "aa-q3",
+    "type": "choice",
+    "question": "Что выведет этот код?\n\nasync function f() { return 42; }\n[1].forEach(async () => { await f(); console.log('inside'); });\nconsole.log('done');",
+    "options": [
+      "inside, done",
+      "done, inside",
+      "только inside",
+      "TypeError"
+    ],
+    "correct": 1,
+    "explanation": "forEach не работает с async-коллбэками: возврат Promise игнорируется. 'done' выведется СРАЗУ, не дождавшись. Для последовательной обработки массива с await — for...of. Для параллельной — Promise.all(arr.map(async ...))."
+  },
+  {
+    "id": "aa-q4",
+    "type": "input",
+    "question": "Какой нативный JS-объект используется для отмены fetch и других async-операций?",
+    "answer": "AbortController",
+    "explanation": "AbortController + AbortSignal. Создаёшь ctrl = new AbortController(), передаёшь ctrl.signal в fetch({signal}), при ctrl.abort() запрос физически отменяется. Работает не только с fetch — addEventListener, setTimeout (через own wrappers), потоки и т.д. Стандарт отмены в JS."
+  },
+  {
+    "id": "aa-q5",
+    "type": "choice",
+    "question": "Какой баг в этом коде?\n\nfunction User({ id }) {\n  const [user, setUser] = useState(null);\n  useEffect(() => {\n    fetchUser(id).then(setUser);\n  }, [id]);\n  return <div>{user?.name}</div>;\n}",
+    "options": [
+      "Нет бага",
+      "Race condition: если id быстро меняется, старый запрос может завершиться ПОЗЖЕ нового и перетереть актуальный user",
+      "useState не работает с async",
+      "Нельзя setUser в useEffect"
+    ],
+    "correct": 1,
+    "explanation": "Классический race в useEffect. Юзер меняет id с 1 на 2 быстро. Запрос 1 ещё идёт, стартует запрос 2. Если запрос 1 ответит ПОЗЖЕ — setUser перетрёт пользователя 2 на 1. Лечится через AbortController в cleanup, или флаг cancelled."
+  },
+  {
+    "id": "aa-q6",
+    "type": "choice",
+    "question": "Какой правильный фикс race condition в useEffect?",
+    "options": [
+      "Добавить useState для loading",
+      "AbortController в cleanup: const ctrl = new AbortController(); fetchUser(id, {signal: ctrl.signal}); return () => ctrl.abort();",
+      "Сделать useEffect синхронным",
+      "Удалить [id] из зависимостей"
+    ],
+    "correct": 1,
+    "explanation": "AbortController — стандартный путь. Создаёшь в эффекте, передаёшь signal в fetch, в cleanup вызываешь abort(). Старый запрос физически отменяется при смене id, не доходит до setUser. Альтернатива (проще, но грубее) — флаг cancelled в cleanup, проверять в .then перед setUser."
+  },
+  {
+    "id": "aa-q7",
+    "type": "choice",
+    "question": "В чём разница между return await bar() и return bar() в async-функции?",
+    "options": [
+      "Никакой",
+      "Обычно никакой, НО внутри try/catch без await ошибка bar() уйдёт во внешний catch (Promise возвращается 'снаружи' try)",
+      "return await быстрее",
+      "return bar() возвращает значение, return await — Promise"
+    ],
+    "correct": 1,
+    "explanation": "На уровне типов одинаково — async всё равно вернёт Promise. Но внутри try/catch: return bar() возвращает Promise СРАЗУ, до его резолва — rejection ловится во внешнем catch. return await bar() ждёт резолва ВНУТРИ try — rejection ловится этим try. Если catch локально не нужен — return bar() короче."
+  },
+  {
+    "id": "aa-q8",
+    "type": "choice",
+    "question": "Как правильно обработать массив элементов асинхронно ПОСЛЕДОВАТЕЛЬНО?",
+    "options": [
+      "arr.forEach(async (item) => await process(item))",
+      "for (const item of arr) { await process(item); }",
+      "await arr.map(process)",
+      "Promise.race(arr.map(process))"
+    ],
+    "correct": 1,
+    "explanation": "for...of корректно работает с await — ждёт каждую итерацию. forEach не ждёт async-коллбэков. Promise.all(arr.map(process)) — параллельно, не последовательно. Для строгой последовательности — только for...of или for...await...of для async-итераторов."
+  },
+  {
+    "id": "aa-q9",
+    "type": "multi",
+    "question": "Что верно про async/await?",
+    "options": [
+      "async-функция всегда возвращает Promise",
+      "await паузит функцию до резолва Promise",
+      "Throw в async-функции = rejected Promise",
+      "Несколько await подряд автоматически параллелятся",
+      "await можно использовать вне async-функции (top-level await в ESM)"
+    ],
+    "correct": [0, 1, 2, 4],
+    "explanation": "async всегда возвращает Promise; await блокирует; throw = rejected; top-level await работает в ESM-модулях (Node 14.8+, современные браузеры). Несколько await НЕ параллелятся автоматически — каждый блокирует следующий."
+  },
+  {
+    "id": "aa-q10",
+    "type": "choice",
+    "question": "Что такое 'top-level await'?",
+    "options": [
+      "Глобальный await Provider",
+      "Возможность использовать await на верхнем уровне ESM-модуля (вне async-функции). Импортирующие модуль ждут резолва",
+      "Альтернатива Promise.all",
+      "Синтаксис для AbortController"
+    ],
+    "correct": 1,
+    "explanation": "Top-level await — в ESM (не в CJS) можно писать await прямо в файле, вне функций. Полезно для конфигов: const config = await fetch('/config.json'). Импорт такого модуля становится async — может неожиданно замедлить, плюс в CJS не поддерживается."
+  },
+  {
+    "id": "aa-q11",
+    "type": "input",
+    "question": "Какой синтаксис для итерации по async-итератору (стрим, paginated API)?",
+    "answer": "for await...of",
+    "explanation": "for await (const item of source) — итерация по async-итератору. Каждый yield обрабатывается через await. Используется для постраничных API, server-sent events, web streams. Источник — async function* (async generator) или объект с Symbol.asyncIterator."
+  },
+  {
+    "id": "aa-q12",
+    "type": "choice",
+    "question": "Что произойдёт:\n\nasync function save() {\n  saveToDb();\n  console.log('done');\n}",
+    "options": [
+      "Ничего особенного, работает",
+      "Fire-and-forget — saveToDb запустился, но мы не ждём его. Если упадёт — unhandled rejection. Если результат важен — это баг",
+      "saveToDb синхронно выполняется",
+      "TypeScript не даст скомпилировать"
+    ],
+    "correct": 1,
+    "explanation": "Забыли await. saveToDb() возвращает Promise, мы не ждём. 'done' выведется сразу. Promise летит в фон. Если saveToDb отвергнется — unhandled rejection (warning, потом crash). TS со strict + плагин noFloatingPromises подсветит. Иногда fire-and-forget ОСОЗНАННОЕ — тогда явный void: void saveToDb();"
+  },
+  {
+    "id": "aa-q13",
+    "type": "choice",
+    "question": "Когда fetch отменён через AbortController, какая ошибка выбрасывается?",
+    "options": [
+      "Error('Cancelled')",
+      "DOMException с name='AbortError'",
+      "TypeError",
+      "Promise молча резолвится в null"
+    ],
+    "correct": 1,
+    "explanation": "DOMException с name='AbortError'. В catch нужно различать: if (err.name === 'AbortError') return; — игнорируем (это наш cleanup). Иначе — настоящая ошибка, показываем юзеру. Без этой проверки cleanup-отмены засветятся как ошибки в UI."
+  },
+  {
+    "id": "aa-q14",
+    "type": "choice",
+    "question": "Что лучше использовать в современном React для async-эффектов?",
+    "options": [
+      "useEffect с async-функцией: useEffect(async () => {...})",
+      "useEffect с обычной функцией и async внутри: useEffect(() => { fetchData(); }, [])",
+      "useState с initial = async function",
+      "Сразу useReducer"
+    ],
+    "correct": 1,
+    "explanation": "useEffect должен возвращать или undefined, или функцию cleanup. async-функция возвращает Promise — это неправильно. Правильно: useEffect(() => { (async () => { ... })(); }, []) или fetchData(); внутри обычной функции. Cleanup тоже синхронный."
+  },
+  {
+    "id": "aa-q15",
+    "type": "multi",
+    "question": "Что является признаком хорошего async-кода?",
+    "options": [
+      "Параллелить независимые await через Promise.all",
+      "Использовать AbortController для отмены при unmount или смене параметров",
+      "Не забывать await (TypeScript + lint правила помогут)",
+      "Различать AbortError в catch — это cleanup, не ошибка",
+      "Делать все await последовательно для предсказуемости"
+    ],
+    "correct": [0, 1, 2, 3],
+    "explanation": "Параллельность через Promise.all где можно; AbortController для отмены; не забывать await; различать AbortError. Делать всё последовательно — антипаттерн, тратит время впустую. Последовательность — только когда есть зависимость."
+  }
+]

@@ -201,6 +201,14 @@ export function fetchReviewSession() {
   return apiRequest<ReviewSessionResponse>("/api/reviews/session");
 }
 
+/** Обновить дневную цель юзера */
+export function updateDailyGoal(dailyGoal: number) {
+  return apiRequest<{ ok: true; dailyGoal: number }>("/api/user/settings", {
+    method: "PATCH",
+    body: JSON.stringify({ dailyGoal }),
+  });
+}
+
 /** Один ответ в режиме повторения */
 export function answerReview(
   lessonSlug: string,

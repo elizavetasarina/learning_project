@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { HelpCircle, CheckCircle, ChevronDown } from "lucide-react";
 import type { ModuleWithLessons } from "@/types/content";
 import { useProgressStore } from "@/store/progress";
 import { pluralize } from "@/lib/pluralize";
+import { useStorage } from "@/hooks/use-storage";
 
 interface LessonsListProps {
   modules: ModuleWithLessons[];
@@ -28,16 +29,20 @@ export function LessonsList({ modules }: LessonsListProps) {
   const load = useProgressStore((s) => s.load);
   useEffect(() => { load(); }, [load]);
 
-  // Множество slug'ов открытых модулей. По умолчанию все свёрнуты.
-  const [openModules, setOpenModules] = useState<Set<string>>(new Set());
+  // Открытые модули с persistence через Telegram CloudStorage
+  // (с fallback на localStorage для локального dev).
+  // Set не сериализуется в JSON, поэтому в storage храним массив,
+  // а в Set конвертим только для проверок has().
+  const [openArray, setOpenArray] = useStorage<string[]>(
+    "lessons.openModules",
+    [],
+  );
+  const openModules = new Set(openArray);
 
   function toggleModule(slug: string) {
-    setOpenModules((prev) => {
-      const next = new Set(prev);
-      if (next.has(slug)) next.delete(slug);
-      else next.add(slug);
-      return next;
-    });
+    setOpenArray((prev) =>
+      prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug],
+    );
   }
 
   return (
@@ -85,12 +90,31 @@ export function LessonsList({ modules }: LessonsListProps) {
               />
             </button>
 
-            {/* Список уроков — рендерим только когда открыт.
-                Альтернатива: всегда рендерить с max-height: 0 для анимации,
-                но это сложнее и не оправдано для коротких списков. */}
-            {isOpen && (
-              <ul className="flex flex-col gap-2 px-3 pb-3">
-                {module.lessons.map((lesson) => {
+            {/*
+              Плавная анимация раскрытия через CSS Grid.
+
+              Трюк: внешний div имеет grid-template-rows: 0fr (свёрнут) или 1fr
+              (открыт). Это нативно анимируется. Внутренний — overflow-hidden,
+              чтобы при свёрнутом состоянии содержимое было обрезано.
+
+              Альтернативы:
+                - max-height: 0 → 500px — нужно угадать высоту, обрезка
+                - JS-измерение через scrollHeight — императивно, лишний код
+                - {isOpen && <ul>} — мгновенно, без анимации
+
+              Контент всегда в DOM, но при свёрнутом — невидимый. Это +память,
+              но для нашего масштаба незаметно. Зато анимация бесплатная.
+            */}
+            <div
+              className={`grid transition-all duration-200 ease-in-out ${
+                isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+              }`}
+            >
+              {/* Внутренний overflow-hidden — обязательная часть трюка.
+                  Без него содержимое торчит, даже когда внешний div = 0fr. */}
+              <div className="overflow-hidden">
+                <ul className="flex flex-col gap-2 px-3 pb-3">
+                  {module.lessons.map((lesson) => {
                   const progress = progressMap?.get(lesson.slug);
                   const isCompleted = progress?.status === "COMPLETED";
                   const scorePercent = progress?.bestScore ?? 0;
@@ -148,8 +172,9 @@ export function LessonsList({ modules }: LessonsListProps) {
                     </li>
                   );
                 })}
-              </ul>
-            )}
+                </ul>
+              </div>
+            </div>
           </section>
         );
       })}

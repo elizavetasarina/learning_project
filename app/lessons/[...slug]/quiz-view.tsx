@@ -8,6 +8,10 @@ import { Zap } from "lucide-react";
 import { useQuizStore } from "@/store/quiz";
 import { useProgressStore } from "@/store/progress";
 import { isAnswerCorrect } from "@/lib/quiz";
+import * as haptic from "@/lib/haptic";
+import { useTelegramMainButton } from "@/hooks/use-telegram-main-button";
+import { useTelegram } from "@/hooks/use-telegram";
+import { useAnimatedCount } from "@/hooks/use-animated-count";
 
 interface QuizViewProps {
   questions: Question[];
@@ -24,6 +28,10 @@ interface QuizViewProps {
  * вне React-дерева — ответы на месте при возврате.
  */
 export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
+  // Если есть нативная MainButton — нашу прячем (двойной CTA = плохо).
+  // На SSR / в браузере вне Telegram hasMainButton = false → fallback видна.
+  const { hasMainButton } = useTelegram();
+
   // ─── Zustand: подписка на нужные поля ─────────────────────
   const currentIndex = useQuizStore((s) => s.currentIndex);
   const answers = useQuizStore((s) => s.answers);
@@ -72,7 +80,12 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
   }
 
   function handleCheck() {
-    check(checkIsCorrect());
+    const correct = checkIsCorrect();
+    // Тактильный отклик на проверку: успех или ошибка.
+    // Юзер физически чувствует результат до того, как прочитает текст.
+    if (correct) haptic.success();
+    else haptic.error();
+    check(correct);
   }
 
   async function handleNext() {
@@ -102,6 +115,27 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
   }
 
   const isCorrect = showResult ? checkIsCorrect() : null;
+
+  // ─── Нативная Telegram MainButton ─────────────────────────
+  // Показываем нативную кнопку, когда мы на экране вопроса (не на итоговом).
+  // Текст и поведение зависят от фазы:
+  //   - до проверки: «Проверить» (active если есть ответ)
+  //   - после проверки: «Следующий вопрос» или «Завершить тест»
+  // На итоговом экране (isFinished) — прячем, там свои кнопки Retry/Home.
+  useTelegramMainButton({
+    text: !showResult
+      ? "Проверить"
+      : isLast
+        ? "Завершить тест"
+        : "Следующий вопрос",
+    isVisible: !isFinished && !!question,
+    isActive: showResult || hasAnswer(),
+    isProgressVisible: isSaving,
+    onClick: () => {
+      if (!showResult) handleCheck();
+      else handleNext();
+    },
+  });
 
   // ─── Итоговый экран ───────────────────────────────────────
 
@@ -138,14 +172,7 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
               👀 Пройдено с подсказкой
             </p>
           )}
-          {lastXpEarned > 0 && (
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5">
-              <Zap size={16} className="text-accent" />
-              <span className="text-[14px] font-semibold text-accent">
-                +{lastXpEarned} XP
-              </span>
-            </div>
-          )}
+          {lastXpEarned > 0 && <XpEarnedBadge amount={lastXpEarned} />}
         </div>
 
         {/* Кнопки */}
@@ -331,25 +358,29 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
         </div>
       )}
 
-      {/* Кнопка — прибита к низу */}
-      <div className="mt-auto pt-6">
-        {!showResult ? (
-          <button
-            type="button"
-            disabled={!hasAnswer()}
-            onClick={handleCheck}
-            className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-text transition-all disabled:opacity-40 active:scale-[0.97]"
-          >
-            Проверить
-          </button>
-        ) : (
-          <>
-            {saveError && (
-              <div className="mb-3 rounded-lg bg-error/10 px-3 py-2 text-[13px] text-error">
-                <p className="font-semibold">Не удалось сохранить:</p>
-                <p className="mt-0.5 break-all">{saveError}</p>
-              </div>
-            )}
+      {/*
+        Кнопка — прибита к низу. Показываем только когда нативной MainButton нет
+        (локальный dev или старые клиенты). saveError остаётся видимым всегда —
+        даже с MainButton, чтобы юзер понимал, что произошло.
+      */}
+      {saveError && (
+        <div className="mt-auto rounded-lg bg-error/10 px-3 py-2 text-[13px] text-error">
+          <p className="font-semibold">Не удалось сохранить:</p>
+          <p className="mt-0.5 break-all">{saveError}</p>
+        </div>
+      )}
+      {!hasMainButton && (
+        <div className={saveError ? "pt-3" : "mt-auto pt-6"}>
+          {!showResult ? (
+            <button
+              type="button"
+              disabled={!hasAnswer()}
+              onClick={handleCheck}
+              className="h-12 w-full rounded-xl bg-accent font-semibold text-accent-text transition-all disabled:opacity-40 active:scale-[0.97]"
+            >
+              Проверить
+            </button>
+          ) : (
             <button
               type="button"
               disabled={isSaving}
@@ -358,9 +389,27 @@ export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
             >
               {isSaving ? "Сохраняем..." : isLast ? "Завершить тест" : "Следующий вопрос"}
             </button>
-          </>
-        )}
-      </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Бейдж «+N XP» с анимацией прокрутки от 0 до amount.
+ * Вынесен в отдельный компонент: useAnimatedCount нельзя вызывать
+ * в условном рендере, а сам бейдж появляется только при lastXpEarned > 0.
+ */
+function XpEarnedBadge({ amount }: { amount: number }) {
+  // initial=0 — стартуем с нуля и крутимся до amount за 800мс
+  const animated = useAnimatedCount(amount, 800, 0);
+  return (
+    <div className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-accent/10 px-3 py-1.5">
+      <Zap size={16} className="text-accent" />
+      <span className="text-[14px] font-semibold text-accent">
+        +{animated} XP
+      </span>
     </div>
   );
 }
