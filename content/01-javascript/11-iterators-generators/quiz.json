@@ -1,0 +1,196 @@
+[
+  {
+    "id": "iter-q1",
+    "type": "choice",
+    "question": "Что делает протокол iterable?",
+    "options": [
+      "Описывает, как сериализовать объект в JSON",
+      "Описывает, что у объекта есть метод [Symbol.iterator](), который возвращает iterator. Благодаря этому он работает с for...of, spread, Array.from",
+      "Скрывает приватные поля",
+      "Делает объект immutable"
+    ],
+    "correct": 1,
+    "explanation": "Iterable — это договор: 'у меня есть [Symbol.iterator]() который возвращает iterator'. Iterator — отдельный объект с методом next() который возвращает {value, done}. Один метод — и объект работает с for...of, spread, destructuring, Array.from."
+  },
+  {
+    "id": "iter-q2",
+    "type": "choice",
+    "question": "Что возвращает iterator.next()?",
+    "options": [
+      "Следующее значение напрямую",
+      "Объект { value, done } — value это значение, done=true когда коллекция закончилась",
+      "Promise",
+      "undefined"
+    ],
+    "correct": 1,
+    "explanation": "Стандартный возврат: { value: anyValue, done: boolean }. done=false → есть ещё значения, value — текущее. done=true → конец, value обычно undefined. for...of проверяет done и выходит из цикла."
+  },
+  {
+    "id": "iter-q3",
+    "type": "multi",
+    "question": "Что является iterable из коробки в JS?",
+    "options": [
+      "Array",
+      "String",
+      "Set",
+      "Map",
+      "Обычный объект { a: 1 }",
+      "arguments"
+    ],
+    "correct": [0, 1, 2, 3, 5],
+    "explanation": "Array, String (по символам, не байтам!), Set, Map, NodeList, arguments — все iterable. Обычный объект — НЕ iterable (for of {a:1} → TypeError). Чтобы пройти по полям объекта — Object.keys/values/entries или for...in."
+  },
+  {
+    "id": "iter-q4",
+    "type": "choice",
+    "question": "Что выведет:\n\nfor (const x of 'abc') console.log(x);",
+    "options": [
+      "TypeError",
+      "'abc' (одна строка)",
+      "'a', 'b', 'c' (посимвольно)",
+      "97, 98, 99 (коды)"
+    ],
+    "correct": 2,
+    "explanation": "Строки iterable, идут по юникодным символам. Полезно для эмодзи: 'a😀b' → ['a', '😀', 'b'] правильно (4 байта в JS строке = 1 итерация). Через arr.charAt(i) и i+=1 — было бы 4 'символа' для эмодзи."
+  },
+  {
+    "id": "iter-q5",
+    "type": "input",
+    "question": "Какой синтаксис используется для объявления функции-генератора?",
+    "answer": "function*",
+    "explanation": "function* myGen() { yield ... }. Звёздочка после function. Возвращает iterator (он же iterable). Внутри используется yield для отдачи значений. Каждый yield — пауза функции, возврат {value, done: false}."
+  },
+  {
+    "id": "iter-q6",
+    "type": "choice",
+    "question": "Что особенного в yield?",
+    "options": [
+      "Это return",
+      "Останавливает функцию-генератор, возвращает значение, СОХРАНЯЕТ состояние (переменные, scope) для следующего next(). Это и есть suspendable function",
+      "Запускает Promise",
+      "Используется только в async"
+    ],
+    "correct": 1,
+    "explanation": "yield — точка приостановки. После yield: функция замораживается со всеми локальными переменными. Следующий next() продолжает с того же места. Это позволяет писать функции, которые «отдают» значения порциями: бесконечные последовательности, парсеры с состоянием."
+  },
+  {
+    "id": "iter-q7",
+    "type": "choice",
+    "question": "Что лучше для бесконечной последовательности натуральных чисел?",
+    "options": [
+      "Массив на 1 миллион элементов",
+      "Генератор function* nats() { let n=1; while(true) yield n++ } — память O(1), вычисление по запросу",
+      "Map с числами",
+      "JSON-файл"
+    ],
+    "correct": 1,
+    "explanation": "Главное применение генераторов: бесконечные/огромные последовательности. Генератор не держит ВСЕ значения в памяти — генерирует по одному на каждый next(). Это lazy evaluation. Объём памяти не зависит от длины 'последовательности'."
+  },
+  {
+    "id": "iter-q8",
+    "type": "choice",
+    "question": "Что делает yield* otherIter?",
+    "options": [
+      "Удваивает значения",
+      "Делегирование: перебирает otherIter и отдаёт каждый его элемент как свой yield. Удобно для композиции генераторов",
+      "Создаёт массив",
+      "Прерывает генератор"
+    ],
+    "correct": 1,
+    "explanation": "yield* (с звёздочкой) встраивает все значения другого iterable в текущий генератор. function* a() { yield 1; yield* [2,3]; yield 4 } → [1,2,3,4]. Используется для модульной композиции."
+  },
+  {
+    "id": "iter-q9",
+    "type": "choice",
+    "question": "Какой синтаксис для итерации по async-iterator?",
+    "options": [
+      "for...of",
+      "for await...of",
+      "while ... do await",
+      "Promise.all"
+    ],
+    "correct": 1,
+    "explanation": "for await (const x of asyncIter) — async-версия for...of. Ждёт каждое yield через await. Источник — async function* (async-генератор) или объект с Symbol.asyncIterator. Используется для пагинации, SSE, WebSocket-сообщений, файловых стримов."
+  },
+  {
+    "id": "iter-q10",
+    "type": "choice",
+    "question": "Что выведет:\n\nconst obj = { a: 1, b: 2 };\nfor (const x of obj) console.log(x);",
+    "options": [
+      "1, 2",
+      "'a', 'b'",
+      "TypeError: obj is not iterable",
+      "['a', 1], ['b', 2]"
+    ],
+    "correct": 2,
+    "explanation": "Обычный объект НЕ iterable. for of требует [Symbol.iterator]. Чтобы пройти по полям — Object.entries(obj) (возвращает массив пар, который iterable) или for in (отдельный синтаксис, идёт по ключам). Чтобы сделать сам объект iterable — добавь [Symbol.iterator]()."
+  },
+  {
+    "id": "iter-q11",
+    "type": "multi",
+    "question": "Что верно про for...in?",
+    "options": [
+      "Идёт по KEYS (ключам объекта)",
+      "Идёт по value (как for...of)",
+      "Включает унаследованные через прототип ключи",
+      "Не подходит для массивов (для массивов — for...of или for с index)",
+      "Поддерживает break"
+    ],
+    "correct": [0, 2, 3, 4],
+    "explanation": "for in идёт по enumerable ключам, ВКЛЮЧАЯ унаследованные через цепочку прототипов. Поэтому опасен на массивах: добавил в Array.prototype поле — оно появится в for in для всех массивов. Использовать только для обычных объектов, или с hasOwnProperty/Object.hasOwn проверкой."
+  },
+  {
+    "id": "iter-q12",
+    "type": "choice",
+    "question": "В чём ограничение arr.forEach по сравнению с for...of?",
+    "options": [
+      "forEach быстрее",
+      "forEach НЕ поддерживает break (только return для пропуска), и НЕ работает с async-await — async-коллбэк просто игнорируется в forEach",
+      "forEach не работает с числами",
+      "Ничем"
+    ],
+    "correct": 1,
+    "explanation": "Главные ограничения forEach: 1) break не работает, return — это переход к следующей итерации (как continue в цикле). 2) async-коллбэк не ожидается. for...of — ждёт await, поддерживает break/continue. Для последовательной обработки массива с await — только for...of."
+  },
+  {
+    "id": "iter-q13",
+    "type": "choice",
+    "question": "Как сделать обычный объект итерируемым?",
+    "options": [
+      "Конвертировать в Map",
+      "Добавить ему метод [Symbol.iterator]() который возвращает iterator с next() => {value, done}",
+      "Использовать Object.iter()",
+      "Прокачать через Proxy"
+    ],
+    "correct": 1,
+    "explanation": "Стандартный путь — реализовать протокол iterable. obj[Symbol.iterator] = function() { ... return { next() {...} } }. После этого работает for of, [...obj], Array.from(obj)."
+  },
+  {
+    "id": "iter-q14",
+    "type": "choice",
+    "question": "Что выведет:\n\nfunction* g() { yield 1; yield 2; return 3; }\nconst it = g();\nconsole.log(it.next(), it.next(), it.next(), it.next());",
+    "options": [
+      "{value:1,done:false}, {value:2,done:false}, {value:3,done:true}, {value:undefined,done:true}",
+      "1, 2, 3, undefined",
+      "Ошибка",
+      "Все три раза одно и то же"
+    ],
+    "correct": 0,
+    "explanation": "yield → {value, done:false}. return → {value, done:true} (значение из return!). После done:true — все следующие next() возвращают {value:undefined, done:true}. Полезно знать: return из генератора — это последний value с done:true."
+  },
+  {
+    "id": "iter-q15",
+    "type": "multi",
+    "question": "Когда РЕАЛЬНО нужен генератор?",
+    "options": [
+      "Бесконечные последовательности (потоки, лента)",
+      "Lazy chain типа map/filter/take для огромных данных",
+      "Парсер с состоянием",
+      "Постраничный API (async-генератор)",
+      "Любое использование map/filter на обычных массивах",
+      "Сложный обход дерева"
+    ],
+    "correct": [0, 1, 2, 3, 5],
+    "explanation": "Генераторы оправданы для бесконечных потоков, lazy цепочек, парсеров с состоянием (yield после каждого токена), async-итерации (пагинация, SSE, файлы), сложных обходов деревьев (yield на каждом узле). Для простых map/filter — обычные методы массива короче и быстрее, генератор там — переусложнение."
+  }
+]

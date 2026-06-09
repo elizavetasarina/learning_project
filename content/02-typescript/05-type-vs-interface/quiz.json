@@ -1,0 +1,193 @@
+[
+  {
+    "id": "tvi-q1",
+    "type": "choice",
+    "question": "Что НЕ умеет interface, но умеет type?",
+    "options": [
+      "Описывать объекты",
+      "Union типов (A | B), mapped types, conditional types, template literals, tuples, алиасы для примитивов",
+      "Extending",
+      "Generics"
+    ],
+    "correct": 1,
+    "explanation": "interface — для объектов и классов. type — общий алиас для ЛЮБОГО типа: union, intersection, mapped, conditional, template literal, tuple, примитивы. interface не может описать 'string | number' — это type-only фича."
+  },
+  {
+    "id": "tvi-q2",
+    "type": "choice",
+    "question": "Что умеет ТОЛЬКО interface?",
+    "options": [
+      "Generics",
+      "Declaration merging — несколько объявлений с одним именем автоматически сливаются в один тип",
+      "Описывать классы",
+      "Использовать readonly"
+    ],
+    "correct": 1,
+    "explanation": "Declaration merging — уникальная фича interface. interface User { a } + interface User { b } = User имеет и a, и b. type выдаст ошибку дубликата. Это используется для расширения сторонних типов (Express.Request, window) и обычно не нужно в прикладном коде."
+  },
+  {
+    "id": "tvi-q3",
+    "type": "input",
+    "question": "Какое ключевое слово используется для глобального расширения встроенных типов (например, window.Telegram)?",
+    "answer": "declare global",
+    "explanation": "declare global { interface Window { ... } }. Это сочетание declaration merging (interface может) и declare global (для модулей). Применяется в .d.ts файлах. В нашем проекте types/telegram.d.ts именно так расширяет Window."
+  },
+  {
+    "id": "tvi-q4",
+    "type": "choice",
+    "question": "Что произойдёт:\n\ninterface User { name: string }\ninterface User { age: number }",
+    "options": [
+      "Ошибка: дубликат имени",
+      "TS автоматически смержит → User имеет и name, и age. Это declaration merging",
+      "Второй interface переопределит первый",
+      "Warning"
+    ],
+    "correct": 1,
+    "explanation": "interface с одинаковыми именами автоматически мержится. Часто скрытый сюрприз: добавил interface в другом файле, не понял что merge — тип стал шире чем думаешь. type так не умеет, у него будет ошибка."
+  },
+  {
+    "id": "tvi-q5",
+    "type": "choice",
+    "question": "Корректно ли это?\n\ntype Status = 'pending' | 'done';\ninterface Status { ... }",
+    "options": [
+      "Да, type и interface могут иметь одинаковые имена",
+      "Нет — конфликт имён, ошибка компиляции",
+      "Только в .d.ts",
+      "Зависит от tsconfig"
+    ],
+    "correct": 1,
+    "explanation": "Имена type и interface в одном scope конфликтуют. Можно объявить type Foo либо interface Foo, не оба. Это logical separation: одно имя — один объявитель."
+  },
+  {
+    "id": "tvi-q6",
+    "type": "choice",
+    "question": "Как расширить уже существующий interface через extends?",
+    "options": [
+      "interface Dog: Animal",
+      "interface Dog extends Animal { ...свои поля }",
+      "interface Dog = Animal & {...}",
+      "Нельзя"
+    ],
+    "correct": 1,
+    "explanation": "interface Dog extends Animal { breed: string }. Можно также extends несколько: interface Dog extends Animal, Pet {}. type-аналог через intersection: type Dog = Animal & { breed: string }. Можно смешивать: interface может extends type и наоборот."
+  },
+  {
+    "id": "tvi-q7",
+    "type": "choice",
+    "question": "Что произойдёт при конфликте полей в interface extends?\n\ninterface A { x: string }\ninterface B extends A { x: number }",
+    "options": [
+      "Компилируется, x: number затирает",
+      "Ошибка компиляции: 'x' имеет несовместимый тип",
+      "x становится never",
+      "x: string | number"
+    ],
+    "correct": 1,
+    "explanation": "interface extends не разрешает конфликта типов — TS выдаст ошибку. type через & смержит x в never (intersection несовместимых = never), TS не упадёт сразу, но при использовании поля будет never. Поведение разное, но в обоих случаях это баг."
+  },
+  {
+    "id": "tvi-q8",
+    "type": "multi",
+    "question": "Что нельзя описать через interface?",
+    "options": [
+      "type ID = string | number",
+      "type Pair = [string, number]",
+      "type Handler = (e: Event) => void",
+      "type ReadonlyUser = { readonly [K in keyof User]: User[K] }",
+      "Структура объекта User"
+    ],
+    "correct": [0, 1, 3],
+    "explanation": "Union (string | number), tuple ([string, number]), mapped type — нельзя через interface. Function (Handler) можно: interface Handler { (e: Event): void }. Структуру объекта — конечно можно. Всё что не объект-shape — это территория type."
+  },
+  {
+    "id": "tvi-q9",
+    "type": "choice",
+    "question": "Что говорят про производительность type vs interface?",
+    "options": [
+      "Одинаково",
+      "interface быстрее для TS-компилятора на больших проектах: лучше кеш сравнения, type через & создаёт новый тип каждый раз. На маленьких — разница незаметна",
+      "type быстрее",
+      "Зависит от ESLint"
+    ],
+    "correct": 1,
+    "explanation": "TS team рекомендует interface для публичных API библиотек ради производительности компилятора. На монорепе с тысячами файлов разница ощутима. На небольшом приложении — нет. Это аргумент 'плюс' для interface, особенно при экспорте API наружу."
+  },
+  {
+    "id": "tvi-q10",
+    "type": "choice",
+    "question": "Используется ли declaration merging в нашем проекте?",
+    "options": [
+      "Нет",
+      "Да — в types/telegram.d.ts через interface Window { Telegram?: ... } и declare global. Это расширение глобального типа Window",
+      "Только в react-кода",
+      "Только в API роутах"
+    ],
+    "correct": 1,
+    "explanation": "Точно используем. types/telegram.d.ts расширяет глобальный Window через interface merging внутри declare global. type там не подошёл бы — он не умеет declaration merging. Это и есть один из реальных случаев когда interface обязателен."
+  },
+  {
+    "id": "tvi-q11",
+    "type": "choice",
+    "question": "Что лучше для типа возврата API в нашем коде?\n\nResult<T> = { ok: true; data: T } | { ok: false; error: string }",
+    "options": [
+      "interface",
+      "type — это discriminated union, interface не умеет union",
+      "Class",
+      "Object"
+    ],
+    "correct": 1,
+    "explanation": "Union типов — territory of type. interface не может описать {a} | {b}. В нашем apiRequest используется type Result<T> = ... — это правильный выбор. И discriminated union даёт type narrowing после if (result.ok)."
+  },
+  {
+    "id": "tvi-q12",
+    "type": "choice",
+    "question": "Что делает 'declare global' в .d.ts файле?",
+    "options": [
+      "Создаёт переменную в рантайме",
+      "Открывает доступ к глобальному пространству типов для расширения встроенных interface'ов (Window, Date, Array.prototype)",
+      "Глобально импортирует библиотеку",
+      "Делает функцию async"
+    ],
+    "correct": 1,
+    "explanation": "declare global нужен в МОДУЛЕ (.ts или .d.ts с import/export) чтобы добавить что-то в global namespace. В скриптах (без import/export) declare global не нужен — там и так global scope. Используется для расширения Window, NodeJS.ProcessEnv, Express.Request."
+  },
+  {
+    "id": "tvi-q13",
+    "type": "multi",
+    "question": "Что выбрать на собесе как практическую стратегию?",
+    "options": [
+      "type как дефолт (единообразие, можно union/mapped/conditional)",
+      "interface для declaration merging — глобалы, расширение библиотек",
+      "interface для public API библиотек ради TS-производительности",
+      "Только interface во всём",
+      "Только type во всём"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "Прагматичная позиция. type — дефолт для прикладного кода (единообразие, гибкость). interface — для declaration merging и публичных API. 'Только X во всём' — слишком жёсткая позиция, на собесе хуже звучит."
+  },
+  {
+    "id": "tvi-q14",
+    "type": "choice",
+    "question": "В каком формате могут быть конфликты при разных страктурах?\n\ninterface User { name: string }\ntype User = { age: number }",
+    "options": [
+      "Они мержатся как два interface'а",
+      "Ошибка: Duplicate identifier 'User'. type и interface в одном scope с одним именем — конфликт",
+      "interface переопределяет",
+      "Компилируется"
+    ],
+    "correct": 1,
+    "explanation": "type и interface не могут иметь одинаковые имена в одном scope. Только interface+interface мержатся. type+anything = duplicate identifier error. Это логично: type — алиас, мержить алиасы не имеет смысла."
+  },
+  {
+    "id": "tvi-q15",
+    "type": "choice",
+    "question": "Финальный совет на собесе: 'Что выбрать в новом проекте?'",
+    "options": [
+      "Только interface",
+      "Только type",
+      "type как дефолт, interface когда реально нужен declaration merging (расширение глобалов, библиотек) — для согласованности и универсальности. Главное — последовательность в проекте",
+      "На каждый файл новый"
+    ],
+    "correct": 2,
+    "explanation": "Гибкая стратегия. Один стиль везде — самое главное (нечего хуже смеси без правил). Дефолт type как универсальный. Interface — точечно для merging. Эта позиция самая распространённая в новых проектах (Vercel, T3, Remix-style)."
+  }
+]

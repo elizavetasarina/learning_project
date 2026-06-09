@@ -1,0 +1,187 @@
+[
+  {
+    "id": "mt-q1",
+    "type": "choice",
+    "question": "Что такое mapped type?",
+    "options": [
+      "Тип-объект",
+      "Преобразование одного типа в другой через { [K in keyof T]: ... } — итерация по ключам с правилом для каждого значения",
+      "Структура для Map",
+      "Альтернатива interface"
+    ],
+    "correct": 1,
+    "explanation": "Mapped type — 'for по ключам типа'. Базовый шаблон: { [K in keyof T]: ... }. На нём построены Partial, Required, Readonly, Pick, и сотни кастомных утилит."
+  },
+  {
+    "id": "mt-q2",
+    "type": "choice",
+    "question": "Как реализован встроенный Partial<T>?",
+    "options": [
+      "Через декоратор",
+      "type Partial<T> = { [K in keyof T]?: T[K] } — итерация по ключам с добавлением ?",
+      "Через Proxy",
+      "Через class"
+    ],
+    "correct": 1,
+    "explanation": "Каноническая утилита. ? после имени ключа в mapped type — делает поле опциональным. Аналогично readonly [K in keyof T] делает readonly."
+  },
+  {
+    "id": "mt-q3",
+    "type": "input",
+    "question": "Какой модификатор в mapped type убирает опциональность?",
+    "answer": "-?",
+    "explanation": "{ [K in keyof T]-?: T[K] } убирает ? (если был) → все поля обязательные. Это и есть Required<T>. Аналогично -readonly убирает readonly: type Mutable<T> = { -readonly [K in keyof T]: T[K] }."
+  },
+  {
+    "id": "mt-q4",
+    "type": "choice",
+    "question": "Что делает 'as' в mapped type (TS 4.1+)?",
+    "options": [
+      "Type assertion",
+      "Key remapping — позволяет изменить ИМЯ ключа: { [K in keyof T as NewName]: T[K] }",
+      "Alias",
+      "Каст"
+    ],
+    "correct": 1,
+    "explanation": "as в mapped type — НЕ type assertion. Это переименование ключа. Можно использовать template literals (как 'get' + Capitalize<K>) или conditional с as never для удаления."
+  },
+  {
+    "id": "mt-q5",
+    "type": "choice",
+    "question": "Что такое template literal type?",
+    "options": [
+      "JSX",
+      "Тип-строка с интерполяцией: `hello-${string}` или `${A}-${B}` где A, B — типы. Можно ставить union'ы — получится декартово произведение",
+      "Шаблон функции",
+      "Способ объявлять generic"
+    ],
+    "correct": 1,
+    "explanation": "Template literal types — строковые типы с интерполяцией. type X = `--${string}` — все строки, начинающиеся с --. С union'ами: type C = `${'a'|'b'}-${'1'|'2'}` = 'a-1' | 'a-2' | 'b-1' | 'b-2'."
+  },
+  {
+    "id": "mt-q6",
+    "type": "choice",
+    "question": "Что выведет:\n\ntype X = `${'red' | 'blue'}-${'sm' | 'md'}`",
+    "options": [
+      "Один тип",
+      "'red-sm' | 'red-md' | 'blue-sm' | 'blue-md' — декартово произведение union'ов",
+      "string",
+      "Ошибка"
+    ],
+    "correct": 1,
+    "explanation": "Когда в template literal stoit union — TS перебирает все комбинации. 2 × 2 = 4 варианта. Используется для CSS-классов (utility-first), event-имён, маршрутов и т.д."
+  },
+  {
+    "id": "mt-q7",
+    "type": "multi",
+    "question": "Какие встроенные string utility types есть в TS?",
+    "options": [
+      "Uppercase<T>",
+      "Lowercase<T>",
+      "Capitalize<T>",
+      "Uncapitalize<T>",
+      "Trim<T>"
+    ],
+    "correct": [0, 1, 2, 3],
+    "explanation": "4 встроенные: Uppercase, Lowercase, Capitalize (первая большая), Uncapitalize (первая маленькая). Trim — НЕТ из коробки (можно реализовать через template + infer самому)."
+  },
+  {
+    "id": "mt-q8",
+    "type": "choice",
+    "question": "Как удалить поле из объекта через mapped type?",
+    "options": [
+      "{ [K in keyof T]: never }",
+      "{ [K in keyof T as some_condition extends true ? never : K]: T[K] } — as never в key remapping исключает ключ",
+      "Невозможно",
+      "Через delete"
+    ],
+    "correct": 1,
+    "explanation": "Главный трюк: as never в key remapping. Когда новое имя становится never — ключ не попадает в результат. Используется для RemoveByType, фильтрации полей по типу значения."
+  },
+  {
+    "id": "mt-q9",
+    "type": "choice",
+    "question": "Что произойдёт:\n\ntype Getters<T> = { [K in keyof T as `get${Capitalize<string & K>}`]: () => T[K] };\ntype X = Getters<{ name: string; age: number }>;",
+    "options": [
+      "Ошибка",
+      "{ getName: () => string; getAge: () => number } — методы-геттеры с PascalCase именами",
+      "{ name: ..., age: ... }",
+      "Promise"
+    ],
+    "correct": 1,
+    "explanation": "Комбинация mapped type + key remapping + template literal + Capitalize. На входе объект с полями, на выходе — объект с геттер-функциями. Используется в библиотеках типа MobX, кастомных stores."
+  },
+  {
+    "id": "mt-q10",
+    "type": "choice",
+    "question": "Что нужно для парсинга строки на типах?",
+    "options": [
+      "JSON.parse в типе",
+      "Template literal pattern + infer + conditional + рекурсия: type Parse<T> = T extends `${infer X}_${infer Rest}` ? X | Parse<Rest> : never",
+      "Regex",
+      "AST"
+    ],
+    "correct": 1,
+    "explanation": "Комбо template literal + infer + recursion. TS делает pattern matching строки на уровне типов. Используется в tRPC, Astro, Hono для типизации роутов с параметрами: '/users/:id/posts/:postId' → 'id' | 'postId'."
+  },
+  {
+    "id": "mt-q11",
+    "type": "choice",
+    "question": "Что делает -readonly?",
+    "options": [
+      "Делает readonly",
+      "Снимает readonly с поля. type Mutable<T> = { -readonly [K in keyof T]: T[K] } делает все поля мутабельными",
+      "Удаляет поле",
+      "Делает поле private"
+    ],
+    "correct": 1,
+    "explanation": "Симметрия с -? для опциональности. -readonly снимает readonly. По умолчанию readonly без - добавляет. + явно для +readonly, но обычно опускается."
+  },
+  {
+    "id": "mt-q12",
+    "type": "choice",
+    "question": "Когда mapped type реально нужен в прикладном коде?",
+    "options": [
+      "Никогда",
+      "DeepReadonly для immutable-state, AsyncVersion для воркеров, PickByType для фильтрации полей, кастомные API-обёртки",
+      "Только в библиотеках",
+      "Для строк"
+    ],
+    "correct": 1,
+    "explanation": "Mapped types полезны для рекуррентных трансформаций типов. Когда видишь, что собираешься писать handlerName + handlerName + handlerName руками — это сигнал. С mapped — одна строка покрывает все случаи."
+  },
+  {
+    "id": "mt-q13",
+    "type": "choice",
+    "question": "Что выведет:\n\ntype X = `--${string}`;\nconst v: X = 'background-color';",
+    "options": [
+      "ok",
+      "Ошибка — строка должна НАЧИНАТЬСЯ с '--', а не содержать его. 'background-color' не подходит",
+      "warning",
+      "ts-ignore"
+    ],
+    "correct": 1,
+    "explanation": "Template literal type — это литеральное совпадение шаблона. `--${string}` означает «строка вида --что-то». 'background-color' начинается с 'b', не с '--' → ошибка типа. Полезно для CSS-переменных, специальных префиксов."
+  },
+  {
+    "id": "mt-q14",
+    "type": "input",
+    "question": "Какая встроенная утилита делает первую букву строкового типа заглавной?",
+    "answer": "Capitalize",
+    "explanation": "Capitalize<'hello'> = 'Hello'. Часто используется в key remapping: `get${Capitalize<string & K>}` превращает 'name' в 'getName'. Без неё пришлось бы вручную перечислять варианты или городить через infer."
+  },
+  {
+    "id": "mt-q15",
+    "type": "multi",
+    "question": "Что является признаком, когда стоит написать mapped или template literal type?",
+    "options": [
+      "Повторяющийся паттерн в типах (каждое поле + 'On' префикс)",
+      "Нужно генерировать union из объекта (все ключи + Capitalize)",
+      "Парсинг структурированной строки в типах (роуты, query params)",
+      "DeepReadonly или DeepPartial",
+      "Простой объект из 2-3 полей"
+    ],
+    "correct": [0, 1, 2, 3],
+    "explanation": "Mapped/template нужны когда есть РЕКУРРЕНТНЫЙ паттерн или преобразование. Для маленького плоского объекта — переусложнение. Главный сигнал: 'я собираюсь повторить трансформацию для каждого поля/значения вручную'."
+  }
+]

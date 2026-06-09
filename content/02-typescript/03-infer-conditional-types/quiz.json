@@ -1,0 +1,189 @@
+[
+  {
+    "id": "infer-q1",
+    "type": "choice",
+    "question": "Что такое conditional type в TypeScript?",
+    "options": [
+      "Тип, который зависит от условий рантайма",
+      "Тип-выражение T extends U ? X : Y — 'if/else' на уровне типов",
+      "Альтернатива if statement",
+      "Только для классов"
+    ],
+    "correct": 1,
+    "explanation": "Conditional type — это тернарник на уровне типов. T extends U ? X : Y. extends здесь — это 'совместимость', не наследование. Используется для построения умных типов: Exclude, NonNullable, ReturnType — все на conditional."
+  },
+  {
+    "id": "infer-q2",
+    "type": "choice",
+    "question": "Что делает 'never' в результате conditional type для union?",
+    "options": [
+      "Ничего особенного",
+      "Удаляется из union при distributive — это и есть механизм работы Exclude и NonNullable",
+      "Превращается в undefined",
+      "Бросает ошибку компиляции"
+    ],
+    "correct": 1,
+    "explanation": "never — единичный/пустой тип, в union с другими типами он 'исчезает' (string | never = string). Это используется в утилитах: type Exclude<T, U> = T extends U ? never : T — те, что подошли под U, становятся never и пропадают."
+  },
+  {
+    "id": "infer-q3",
+    "type": "input",
+    "question": "Какое ключевое слово в TS позволяет 'извлечь' тип из шаблона внутри conditional?",
+    "answer": "infer",
+    "explanation": "infer создаёт переменную типа, которую TS сам разгадывает из контекста. T extends Array<infer E> ? E : never — 'если T это массив какого-то E, верни E'. Появляется ТОЛЬКО внутри extends-проверки conditional type, нигде больше."
+  },
+  {
+    "id": "infer-q4",
+    "type": "choice",
+    "question": "Что такое distributive conditional type?",
+    "options": [
+      "Тип, который распределён по сети",
+      "Если T — naked generic в conditional, то T extends U ? X : Y применяется к КАЖДОМУ члену union'а T отдельно, результаты собираются обратно в union",
+      "Конкатенация типов",
+      "Применение типа ко всем полям"
+    ],
+    "correct": 1,
+    "explanation": "Distributive — главная особенность conditional types. type ToArray<T> = T extends unknown ? T[] : never. ToArray<string | number> = string[] | number[]. Если бы не distributive, было бы (string | number)[]. Включается когда T — naked generic. Отключается обёрткой в [T]."
+  },
+  {
+    "id": "infer-q5",
+    "type": "choice",
+    "question": "Какой тип получится:\n\ntype Result = ToArray<string | number>;\n// где ToArray<T> = T extends unknown ? T[] : never",
+    "options": [
+      "(string | number)[]",
+      "string[] | number[] — distributive раздал conditional по каждому члену union'а",
+      "string[]",
+      "never"
+    ],
+    "correct": 1,
+    "explanation": "Distributive в действии. T = string | number, conditional раздаётся: (string extends unknown ? string[] : never) | (number extends unknown ? number[] : never) → string[] | number[]. Без distributive было бы (string | number)[]."
+  },
+  {
+    "id": "infer-q6",
+    "type": "choice",
+    "question": "Как написать тип, извлекающий тип элемента из массива?\n\ntype ElementOf<T> = ___",
+    "options": [
+      "T[number]",
+      "T extends Array<infer E> ? E : never",
+      "T extends infer E[] ? E : never",
+      "Все варианты выше работают (первый встроенный, второй через conditional + infer)"
+    ],
+    "correct": 3,
+    "explanation": "Оба работают. T[number] — встроенный механизм для индексации массива по числовому индексу даёт тип элементов. Через conditional + infer — universal паттерн, работает для других контейнеров (Map<infer K, V> и т.д.). На собесе оба ответа правильные."
+  },
+  {
+    "id": "infer-q7",
+    "type": "choice",
+    "question": "Как реализован встроенный ReturnType<T>?",
+    "options": [
+      "Магия TS",
+      "T extends (...args: any) => infer R ? R : never — извлекает тип возврата из функции",
+      "T['return']",
+      "Через декоратор"
+    ],
+    "correct": 1,
+    "explanation": "ReturnType — каноническая утилита на infer. Шаблон: функция со ЛЮБЫМИ аргументами и ЧТО-ТО возвращающая. infer R захватывает это 'что-то'. Если T не функция — never. typeof getUser → ReturnType<typeof getUser> = тип возврата getUser."
+  },
+  {
+    "id": "infer-q8",
+    "type": "input",
+    "question": "Какая встроенная утилита разворачивает Promise (даже вложенный Promise<Promise<X>>) до значения?",
+    "answer": "Awaited",
+    "explanation": "Awaited<T> — ES2022, реализован через рекурсивный conditional с infer. Awaited<Promise<string>> = string. Awaited<Promise<Promise<number>>> = number. Awaited<number> = number (не Promise — возвращает как есть). До 4.5 писали своими руками: type Unwrap<T> = T extends Promise<infer U> ? U : T."
+  },
+  {
+    "id": "infer-q9",
+    "type": "choice",
+    "question": "Где можно использовать ключевое слово infer?",
+    "options": [
+      "Где угодно в типах",
+      "ТОЛЬКО внутри extends-проверки conditional type. Нигде больше",
+      "Только в дженериках функций",
+      "Только в interface"
+    ],
+    "correct": 1,
+    "explanation": "infer — строго внутри extends. type T<X> = X extends infer Y ? Y : never — валидно. Использовать infer как-то иначе — синтаксическая ошибка. infer и conditional неразделимы."
+  },
+  {
+    "id": "infer-q10",
+    "type": "multi",
+    "question": "Какие встроенные утилиты TS реализованы через conditional + infer?",
+    "options": [
+      "ReturnType",
+      "Parameters",
+      "Awaited",
+      "Exclude",
+      "NonNullable",
+      "InstanceType",
+      "Partial"
+    ],
+    "correct": [0, 1, 2, 3, 4, 5],
+    "explanation": "Все 6 — через conditional + infer (NonNullable и Exclude — без infer, чисто conditional). Partial — единственный из списка, что НЕ использует conditional. Он mapped type: { [K in keyof T]?: T[K] }. Знать архитектуру встроенных утилит — мощный собесовый сигнал."
+  },
+  {
+    "id": "infer-q11",
+    "type": "choice",
+    "question": "Как отключить distributive в conditional type?",
+    "options": [
+      "Никак",
+      "Обернуть оба T в одноэлементный кортеж: [T] extends [U] ? X : Y. Тогда T не naked → не distribute",
+      "Использовать union вместо T",
+      "Опция в tsconfig"
+    ],
+    "correct": 1,
+    "explanation": "[T] extends [U] — оборачивание в кортеж выключает distribution. Используется когда хочешь проверить ВЕСЬ union как одно, а не разводить. Пример: type IsExactlyAny<T> = [T] extends [any] ? unknown extends T ? true : false : false."
+  },
+  {
+    "id": "infer-q12",
+    "type": "choice",
+    "question": "Что вернёт:\n\ntype Last<T extends readonly unknown[]> = T extends readonly [...unknown[], infer L] ? L : never;\ntype X = Last<[string, number, boolean]>;",
+    "options": [
+      "string",
+      "boolean — infer захватывает последний элемент кортежа",
+      "number",
+      "never"
+    ],
+    "correct": 1,
+    "explanation": "Pattern matching кортежа. [...unknown[], infer L] — 'все элементы плюс ПОСЛЕДНИЙ как L'. Для [string, number, boolean] → L = boolean. Аналогично [infer F, ...unknown[]] захватывает первый. Это паттерн для работы с кортежами на уровне типов."
+  },
+  {
+    "id": "infer-q13",
+    "type": "choice",
+    "question": "Чем 'extends' в conditional type отличается от 'extends' в class?",
+    "options": [
+      "Ничем",
+      "В classes extends = наследование (механизм OOP). В conditional types extends = проверка СОВМЕСТИМОСТИ типов (T можно использовать там, где ожидается U)",
+      "В classes устарело",
+      "В conditional работает только с примитивами"
+    ],
+    "correct": 1,
+    "explanation": "Одно слово, два разных смысла. class Child extends Parent — добавляет prototype chain. T extends U в типе — проверяет, можно ли T использовать там, где ожидается U (структурная совместимость). 'string extends string | number' = true (string — это подмножество union'а)."
+  },
+  {
+    "id": "infer-q14",
+    "type": "choice",
+    "question": "Что такое template literal types?",
+    "options": [
+      "JSX",
+      "Типы вида `${A}-${B}` где A, B — типы. Можно использовать infer для парсинга строк: type ParseRoute<T> = T extends `${string}/:${infer Param}/${string}` ? Param : never",
+      "Шаблоны для функций",
+      "Способ объявлять enums"
+    ],
+    "correct": 1,
+    "explanation": "Template literal types — типы-строки с интерполяцией. Type `${A}${B}` сложит две строки. С infer можно ПАРСИТЬ строки на уровне типов: парсер route'ов, SQL queries, CSS-units. Это и впечатляет на собесе: типы работают как мини-компилятор."
+  },
+  {
+    "id": "infer-q15",
+    "type": "multi",
+    "question": "Когда применять conditional types + infer?",
+    "options": [
+      "Деконструкция типа из чужой функции/класса/Promise",
+      "Парсинг строковых литералов (route params, SQL)",
+      "Сложная generic-утилита для команды",
+      "Каждый дженерик в каждом файле",
+      "Когда хватает дженерика с constraint"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "Conditional + infer — мощные, но СЛОЖНЫЕ инструменты. Применять там, где они РЕАЛЬНО нужны: извлечение типа, парсинг, шаблоны утилит. В простых случаях достаточно дженерика с constraint. Каждый дженерик не нужно усложнять — переусложнение хуже простоты."
+  }
+]

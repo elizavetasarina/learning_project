@@ -51,8 +51,8 @@
 | 08 | Прототипы, классы, наследование | ✅ |
 | 09 | Promise глубоко (цепочки, ошибки, утечки Promise.all) | ✅ |
 | 10 | async/await глубже (ловушки, race conditions, AbortController) | ✅ |
-| 11 | Iterators, generators, for..of, async iterators | ⏳ |
-| 12 | Symbol, Map, Set, WeakMap, WeakRef — когда что | ⏳ |
+| 11 | Iterators, generators, for..of, async iterators | ✅ |
+| 12 | Symbol, Map, Set, WeakMap, WeakRef — когда что | ✅ |
 | 13 | Модули: ESM vs CommonJS, динамический import, tree-shaking | ⏳ |
 | 14 | Bigint, типы коллекций, TypedArray | 💡 |
 | 15 | Proxy и Reflect — практическое применение | 💡 |
@@ -68,10 +68,10 @@
 |---|------|--------|
 | 01 | Generics: основы, constraints, дефолты | ✅ |
 | 02 | Utility types: Partial, Pick, Omit, Record, ReturnType | ✅ |
-| 03 | `infer` и conditional types | ⏳ |
-| 04 | Type narrowing: type guards, discriminated unions, exhaustive check | ⏳ |
-| 05 | `type` vs `interface`, declaration merging | ⏳ |
-| 06 | Mapped types, template literal types | ⏳ |
+| 03 | `infer` и conditional types | ✅ |
+| 04 | Type narrowing: type guards, discriminated unions, exhaustive check | ✅ |
+| 05 | `type` vs `interface`, declaration merging | ✅ |
+| 06 | Mapped types, template literal types | ✅ |
 | 07 | `satisfies`, `as const`, branded types | ⏳ |
 | 08 | Variance, covariance, contravariance (для функций) | 💡 |
 | 09 | Module augmentation и расширение типов библиотек | 💡 |
@@ -87,9 +87,9 @@
 |---|------|--------|
 | 01 | Reconciliation, vDOM, Fiber, ключи | ✅ |
 | 02 | Хуки изнутри (dispatcher, memoizedState, правила) | ✅ |
-| 03 | useMemo/useCallback — когда РЕАЛЬНО нужно | ⏳ |
+| 03 | useMemo/useCallback — когда РЕАЛЬНО нужно | ✅ |
 | 04 | Context: цена, перерендеры, как разрезать | ⏳ |
-| 05 | Server Components (RSC) в Next.js | ⏳ |
+| 05 | Server Components (RSC) в Next.js | ✅ |
 | 06 | State management: Context vs Zustand vs Redux | ⏳ |
 | 07 | useEffect глубоко: race conditions, cleanup, AbortController | ⏳ |
 | 08 | Suspense и Error Boundaries | ⏳ |
@@ -109,8 +109,8 @@
 | # | Тема | Статус |
 |---|------|--------|
 | 01 | HTTP basics: методы, статусы, заголовки, идемпотентность | ✅ |
-| 02 | Кэширование: ETag, Cache-Control, max-age, immutable, stale-while-revalidate | ⏳ |
-| 03 | CORS: что это, preflight, credentials, нюансы | ⏳ |
+| 02 | Кэширование: ETag, Cache-Control, max-age, immutable, stale-while-revalidate | ✅ |
+| 03 | CORS: что это, preflight, credentials, нюансы | ✅ |
 | 04 | Rendering strategies: CSR, SSR, SSG, ISR, streaming | ⏳ |
 | 05 | Web Vitals: LCP, INP, CLS — что мерять, как оптимизировать | ⏳ |
 | 06 | Code splitting, lazy loading, dynamic import, prefetch | ⏳ |
@@ -133,7 +133,7 @@
 | 02 | HMAC-аутентификация глубоко | ✅ |
 | 03 | Stateless vs sessions: выбор и tradeoffs | ⏳ |
 | 04 | Prisma 7 driver adapter: ленивый синглтон через Proxy | ⏳ |
-| 05 | Lazy reset: стрики и дневная цель без cron | ⏳ |
+| 05 | Lazy reset: стрики и дневная цель без cron | ✅ |
 | 06 | Атомарные операции в БД: increment, race conditions | ⏳ |
 | 07 | Zustand: store вне React, точечные подписки | ⏳ |
 | 08 | Raw SQL в Prisma 7: type casts ::int / ::"LessonStatus" | ⏳ |
@@ -341,11 +341,13 @@
 
 1. ~~`01-javascript/09-promises-deep` — Promise глубоко~~ ✅
 2. ~~`01-javascript/10-async-await-deep` — async/await ловушки~~ ✅
-3. `03-react/03-memo-callback` — useMemo / useCallback
-4. `03-react/05-server-components` — RSC в Next.js
-5. `04-network-perf/02-caching` — кэширование HTTP
-6. `04-network-perf/03-cors` — CORS
-7. `05-this-project/05-lazy-reset` — наш паттерн без cron
+3. ~~`03-react/03-memo-callback` — useMemo / useCallback~~ ✅
+4. ~~`03-react/05-server-components` — RSC в Next.js~~ ✅
+5. ~~`04-network-perf/02-caching` — кэширование HTTP~~ ✅
+6. ~~`04-network-perf/03-cors` — CORS~~ ✅
+7. ~~`05-this-project/05-lazy-reset` — наш паттерн без cron~~ ✅
+
+**Top-priority пройден полностью — 7/7 уроков.** Дальше — выбор из новых модулей или продолжение.
 
 После них — **переходим к Node.js / SQL / Security**, чтобы покрыть fullstack.
 

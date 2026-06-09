@@ -42,3 +42,6 @@ next-env.d.ts
 
 /lib/generated/prisma
 
+# Private docs (code reviews, internal notes — not for public repo)
+/docs/internal/
+

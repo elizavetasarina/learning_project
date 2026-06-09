@@ -38,8 +38,11 @@ export interface MainButtonOptions {
 export function useTelegramMainButton(opts: MainButtonOptions): void {
   // Рефлекс на актуальный onClick. Telegram API регистрирует
   // одну стабильную обёртку, которая всегда вызывает свежий onClick.
+  // Запись в ref — в useEffect без deps, чтобы не нарушать react-hooks/refs.
   const onClickRef = useRef(opts.onClick);
-  onClickRef.current = opts.onClick;
+  useEffect(() => {
+    onClickRef.current = opts.onClick;
+  });
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -53,7 +56,6 @@ export function useTelegramMainButton(opts: MainButtonOptions): void {
       btn.offClick(handler);
       btn.hide();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // onClick хранится в рефе — пересоздавать подписку не нужно
 
   const {

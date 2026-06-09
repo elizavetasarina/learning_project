@@ -1,0 +1,193 @@
+[
+  {
+    "id": "cors-q1",
+    "type": "choice",
+    "question": "Что такое 'origin' в HTTP?",
+    "options": [
+      "Только домен",
+      "Тройка: protocol + domain + port (https://app.com:443)",
+      "URL целиком с путём",
+      "IP-адрес сервера"
+    ],
+    "correct": 1,
+    "explanation": "Origin = протокол + домен + порт. https://app.com и http://app.com — разные origin (другой протокол). app.com и api.app.com — разные (поддомен). app.com:443 и app.com:8080 — разные (порт). Порт 443/80 неявные для https/http."
+  },
+  {
+    "id": "cors-q2",
+    "type": "choice",
+    "question": "Что делает Same-Origin Policy?",
+    "options": [
+      "Запрещает делать любые cross-origin запросы",
+      "Браузер позволяет ПОСЛАТЬ cross-origin запрос, но JS-коду НЕ позволяет прочитать ответ — кроме случаев, когда сервер явно разрешил через CORS",
+      "Шифрует запросы",
+      "Блокирует HTTPS"
+    ],
+    "correct": 1,
+    "explanation": "Главное понимание: запрос УЖЕ ВЫПОЛНЯЕТСЯ, побочные эффекты происходят. SOP запрещает только ЧТЕНИЕ ответа JS-кодом. Это защищает: на evil.com JS делает fetch на bank.com с твоей cookie — банк отвечает, но evil.com не может прочитать."
+  },
+  {
+    "id": "cors-q3",
+    "type": "choice",
+    "question": "Что нужно от сервера, чтобы JS на https://app.com мог прочитать ответ от https://api.com?",
+    "options": [
+      "Ничего, браузер сам разрешит",
+      "Заголовок в ответе: Access-Control-Allow-Origin: https://app.com (или *, кроме случаев с credentials)",
+      "Cookie от api.com",
+      "Авторизация через JWT"
+    ],
+    "correct": 1,
+    "explanation": "Сервер api.com должен прислать Access-Control-Allow-Origin со значением app.com или *. Браузер видит этот заголовок и разрешает JS-коду прочитать ответ. Без него — ошибка в консоли, JS читать не может."
+  },
+  {
+    "id": "cors-q4",
+    "type": "choice",
+    "question": "Когда браузер делает preflight (OPTIONS)?",
+    "options": [
+      "Всегда перед cross-origin запросом",
+      "Только для не-простых запросов: например с Content-Type: application/json, кастомными заголовками (X-Init-Data), или методами DELETE/PUT/PATCH",
+      "Только для POST",
+      "Никогда — это анахронизм"
+    ],
+    "correct": 1,
+    "explanation": "Простые запросы (GET/HEAD/POST с безопасными заголовками и определёнными Content-Type — form-urlencoded, multipart, text/plain) идут сразу. Всё остальное — preflight. application/json уже не безопасный, поэтому почти все API делают preflight."
+  },
+  {
+    "id": "cors-q5",
+    "type": "choice",
+    "question": "Что делает Access-Control-Max-Age: 3600?",
+    "options": [
+      "Сессия 3600 секунд",
+      "Браузер закэширует preflight-разрешения на 3600 секунд — следующие запросы с этим методом и заголовками не делают повторный OPTIONS",
+      "Timeout запроса",
+      "Срок жизни cookie"
+    ],
+    "correct": 1,
+    "explanation": "Без кэша preflight браузер бы делал OPTIONS перед каждым реальным запросом — двойной трафик. Max-Age кэширует разрешение. По умолчанию 5 секунд (Chrome), рекомендуется 600-3600. Это оптимизация только для preflight, на сами запросы не влияет."
+  },
+  {
+    "id": "cors-q6",
+    "type": "input",
+    "question": "Какое значение fetch-опции credentials нужно поставить, чтобы cookie с сервера прикладывались к cross-origin запросу?",
+    "answer": "include",
+    "explanation": "fetch(url, { credentials: 'include' }). По умолчанию same-origin — cookie летят только если same origin. omit — никогда. include — всегда. Для cross-origin плюс сервер должен разрешить через Access-Control-Allow-Credentials: true."
+  },
+  {
+    "id": "cors-q7",
+    "type": "choice",
+    "question": "Главная ловушка с credentials в CORS:",
+    "options": [
+      "Cookie шифруется",
+      "При credentials: include и Access-Control-Allow-Credentials: true НЕЛЬЗЯ использовать * в Allow-Origin — нужен конкретный origin. И в Allow-Headers, Allow-Methods тоже",
+      "Credentials не работают через HTTPS",
+      "Cookie теряют SameSite атрибут"
+    ],
+    "correct": 1,
+    "explanation": "Самая частая CORS-ошибка. * + credentials = браузер отбросит. Сервер должен либо отражать конкретный валидный origin, либо разрешать без credentials. Логика: с * любой сайт мог бы делать requests с cookie юзера — это бы убило защиту."
+  },
+  {
+    "id": "cors-q8",
+    "type": "choice",
+    "question": "Защищает ли CORS сервер от curl/Postman?",
+    "options": [
+      "Да, CORS — обязательная защита API",
+      "Нет — CORS работает ТОЛЬКО в браузере. curl, Postman, Python-скрипты игнорируют CORS, потому что они не выполняют SOP-проверки",
+      "Только при HTTPS",
+      "Только для cookies"
+    ],
+    "correct": 1,
+    "explanation": "Распространённая иллюзия. CORS — это защита ЮЗЕРА от чужих сайтов через его браузер. Сервер защищён аутентификацией (токены, проверки), rate limit, anti-CSRF. CORS не нужен для curl — там просто нет SOP-проверки."
+  },
+  {
+    "id": "cors-q9",
+    "type": "multi",
+    "question": "Что верно про preflight (OPTIONS) запрос?",
+    "options": [
+      "Браузер шлёт его автоматически перед не-простыми cross-origin запросами",
+      "Сервер должен ответить с Access-Control-Allow-Methods и Access-Control-Allow-Headers",
+      "Браузер не шлёт credentials в preflight",
+      "Preflight должен пройти БЕЗ аутентификации — иначе настоящий запрос не отправится",
+      "Preflight можно отключить через настройку браузера"
+    ],
+    "correct": [0, 1, 2, 3],
+    "explanation": "Всё кроме 'отключить'. Preflight автоматический. В нём нет credentials. Должен пройти без аутентификации — иначе цепочка обрывается. Сервер должен корректно ответить с Allow-Methods/Allow-Headers. Через настройки браузера это не выключается — это standard."
+  },
+  {
+    "id": "cors-q10",
+    "type": "choice",
+    "question": "Что значит ошибка 'Request header field x-init-data is not allowed by Access-Control-Allow-Headers'?",
+    "options": [
+      "Заголовок устарел",
+      "Браузер послал preflight, спросил можно ли x-init-data — сервер в ответе НЕ перечислил этот заголовок в Access-Control-Allow-Headers. Добавь его на сервере",
+      "x-init-data зарезервирован",
+      "Нужно UPPERCASE имя заголовка"
+    ],
+    "correct": 1,
+    "explanation": "Сервер должен явно разрешить кастомные заголовки. По умолчанию разрешены только базовые (Accept, Content-Type и т.д.). Кастомные (X-Init-Data, X-Timezone, Authorization) — нужно добавлять в Access-Control-Allow-Headers: 'Content-Type, X-Init-Data, X-Timezone'."
+  },
+  {
+    "id": "cors-q11",
+    "type": "choice",
+    "question": "https://app.com vs https://app.com:443 — это:",
+    "options": [
+      "Разные origin",
+      "Один и тот же origin — 443 это дефолтный порт для HTTPS, опускается",
+      "Зависит от сервера",
+      "Разные после смены IP"
+    ],
+    "correct": 1,
+    "explanation": "443 — дефолтный порт для HTTPS, 80 — для HTTP. В URL они неявные. https://app.com эквивалентен https://app.com:443. А вот http://app.com:80 vs https://app.com:443 — разные origin (разный протокол)."
+  },
+  {
+    "id": "cors-q12",
+    "type": "choice",
+    "question": "Почему Access-Control-Allow-Origin не может содержать список 'https://app.com, https://staging.com'?",
+    "options": [
+      "Это работает",
+      "Спецификация CORS разрешает только ОДНО значение (или *). Для нескольких origin сервер должен сам решать, какой отражать в ответе на основе Origin запроса",
+      "Список разрешён, но только с пробелом",
+      "Нужен запятая без пробела"
+    ],
+    "correct": 1,
+    "explanation": "Allow-Origin принимает один origin или *. Для нескольких — серверная логика: const ALLOWED = [...]; if (ALLOWED.includes(origin)) res.set('Access-Control-Allow-Origin', origin). Браузер видит свой origin в ответе — разрешает. Это паттерн 'reflect origin'."
+  },
+  {
+    "id": "cors-q13",
+    "type": "choice",
+    "question": "Что в Network tab DevTools при preflight?",
+    "options": [
+      "Один запрос",
+      "Сначала OPTIONS, потом настоящий POST/PUT/DELETE — два запроса в Network",
+      "Запрос только в Performance, не в Network",
+      "Скрытый WebSocket"
+    ],
+    "correct": 1,
+    "explanation": "Видишь два запроса. OPTIONS — preflight, должен быть 204 No Content или 200 OK с Access-Control-* заголовками. Потом — реальный запрос. Если OPTIONS упал (например, 404 или 500) — настоящий запрос не отправится, в консоли увидишь CORS error."
+  },
+  {
+    "id": "cors-q14",
+    "type": "multi",
+    "question": "Что является 'simple request' (не требует preflight)?",
+    "options": [
+      "GET без кастомных заголовков",
+      "POST с Content-Type: application/x-www-form-urlencoded",
+      "POST с Content-Type: application/json",
+      "DELETE",
+      "POST с заголовком X-Init-Data"
+    ],
+    "correct": [0, 1],
+    "explanation": "Simple — это GET/HEAD/POST с безопасным Content-Type (form-urlencoded, multipart, text/plain) и без кастомных заголовков. application/json — НЕ simple (даже хотя кажется обычным). DELETE — никогда не simple. Кастомные заголовки — никогда не simple."
+  },
+  {
+    "id": "cors-q15",
+    "type": "choice",
+    "question": "В нашем проекте (Mini App на itlearn.vercel.app + API на том же домене) CORS:",
+    "options": [
+      "Должен быть настроен обязательно",
+      "Не нужен — это same-origin (один и тот же домен), CORS не вступает в игру",
+      "Только для POST",
+      "Только в production"
+    ],
+    "correct": 1,
+    "explanation": "Same-origin = CORS не нужен. Mini App и API живут на одном домене → запросы same-origin → SOP пропускает, CORS-заголовки не проверяются. Если бы вынесли API на api.itlearn.vercel.app — это другой origin, пришлось бы настроить CORS."
+  }
+]

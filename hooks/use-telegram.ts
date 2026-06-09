@@ -24,6 +24,12 @@ export function useTelegram(): TelegramState {
   });
 
   useEffect(() => {
+    // ПРИМЕЧАНИЕ: setState внутри useEffect — корректный паттерн для
+    // ОДНОРАЗОВОЙ синхронизации React-state с внешним API (window.Telegram).
+    // Это не cascading renders, это «прочитал external once at mount».
+    // Альтернатива useSyncExternalStore не подходит: Telegram не эмитит
+    // изменений своего состояния, мы просто читаем его наличие.
+    /* eslint-disable react-hooks/set-state-in-effect */
     const webApp = window.Telegram?.WebApp;
 
     if (!webApp) {
@@ -47,6 +53,7 @@ export function useTelegram(): TelegramState {
       isReady: true,
       hasMainButton: !!webApp.MainButton,
     });
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, []);
 
   return state;

@@ -78,6 +78,14 @@ export function validateInitData(initData: string): ValidationResult {
     return { ok: false, error: "Missing hash" };
   }
 
+  // Защита: hash должен быть ровно 64 hex-символа (SHA-256 в hex).
+  // Если кто-то прислал мусор — выходим до crypto.timingSafeEqual,
+  // которая бы бросила RangeError на буферах разной длины. Иначе
+  // ошибка стала бы 500 вместо ожидаемого 401 (information leak).
+  if (!/^[0-9a-f]{64}$/i.test(hash)) {
+    return { ok: false, error: "Malformed hash" };
+  }
+
   // 3. Проверяем auth_date — когда Telegram создал эти данные
   const authDateStr = params.get("auth_date");
   if (!authDateStr) {
@@ -124,10 +132,20 @@ export function validateInitData(initData: string): ValidationResult {
   //    Обычное === сравнивает посимвольно и возвращает false на первом
   //    несовпадении. Атакующий может измерить время ответа и побайтово
   //    подобрать hash. timingSafeEqual всегда тратит одинаковое время.
-  const isValid = crypto.timingSafeEqual(
-    Buffer.from(computedHash, "hex"),
-    Buffer.from(hash, "hex")
-  );
+  //
+  //    Длина hash уже проверена выше (ровно 64 hex), computedHash тоже
+  //    SHA-256 → 64 hex. Буферы гарантированно равной длины — timingSafeEqual
+  //    не бросит RangeError. Дополнительный try/catch как defense in depth.
+  let isValid: boolean;
+  try {
+    isValid = crypto.timingSafeEqual(
+      Buffer.from(computedHash, "hex"),
+      Buffer.from(hash, "hex"),
+    );
+  } catch {
+    // Невероятный edge-case (битый hex после регекс-проверки) — возвращаем 401
+    return { ok: false, error: "Hash comparison failed" };
+  }
 
   if (!isValid) {
     return { ok: false, error: "Invalid hash" };

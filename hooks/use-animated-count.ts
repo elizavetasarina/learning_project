@@ -31,8 +31,12 @@ export function useAnimatedCount(
 
   // Храним последнее отображаемое значение в ref'е — чтобы при изменении
   // target знать «откуда» начинать анимацию (не из устаревшего initial).
+  // Запись в ref делаем в useEffect без deps (бежит после каждого render),
+  // а не во время render — это удовлетворяет правило react-hooks/refs.
   const currentRef = useRef<number>(initial);
-  currentRef.current = value;
+  useEffect(() => {
+    currentRef.current = value;
+  });
 
   useEffect(() => {
     const startValue = currentRef.current;

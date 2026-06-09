@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, XCircle, Home, RotateCcw, BookOpen } from "lucide-react";
+import { CheckCircle, XCircle, Home, RotateCcw, Zap } from "lucide-react";
 import type { Question } from "@/types/content";
-import { Zap } from "lucide-react";
 import { useQuizStore } from "@/store/quiz";
 import { useProgressStore } from "@/store/progress";
 import { isAnswerCorrect } from "@/lib/quiz";
@@ -15,6 +14,7 @@ import { useAnimatedCount } from "@/hooks/use-animated-count";
 
 interface QuizViewProps {
   questions: Question[];
+  /** Название урока для контекста — пока не отображается, но хранится в API */
   lessonTitle: string;
   slug: string;
 }
@@ -27,7 +27,7 @@ interface QuizViewProps {
  * useState сбросится — юзер потеряет ответы. Zustand хранит state
  * вне React-дерева — ответы на месте при возврате.
  */
-export function QuizView({ questions, lessonTitle, slug }: QuizViewProps) {
+export function QuizView({ questions, slug }: QuizViewProps) {
   // Если есть нативная MainButton — нашу прячем (двойной CTA = плохо).
   // На SSR / в браузере вне Telegram hasMainButton = false → fallback видна.
   const { hasMainButton } = useTelegram();

@@ -1,0 +1,194 @@
+[
+  {
+    "id": "narrow-q1",
+    "type": "choice",
+    "question": "Что такое type narrowing в TypeScript?",
+    "options": [
+      "Уменьшение размера компилируемого кода",
+      "Автоматическое сужение типа переменной внутри ветвей по условиям проверки (typeof, instanceof, in, equality, etc.)",
+      "Удаление лишних типов",
+      "Сжатие union'ов"
+    ],
+    "correct": 1,
+    "explanation": "Narrowing — это автоматический control flow analysis. TS смотрит на условия (if/switch) и понимает, какие типы возможны в каждой ветке. Без narrowing пришлось бы кастить вручную через as."
+  },
+  {
+    "id": "narrow-q2",
+    "type": "choice",
+    "question": "Что выведет typeof null в JS?",
+    "options": [
+      "'null'",
+      "'object' — историческая бага JS, исправить нельзя",
+      "'undefined'",
+      "TypeError"
+    ],
+    "correct": 1,
+    "explanation": "typeof null === 'object' — известная бага из ранних дней JS. Это значит для разделения object и null недостаточно typeof — нужны другие проверки (=== null или === undefined)."
+  },
+  {
+    "id": "narrow-q3",
+    "type": "choice",
+    "question": "Какой тип у x после:\n\nfunction f(x: string | null) {\n  if (!x) return;\n  // здесь?\n}",
+    "options": [
+      "string | null",
+      "string — null отпал по truthiness narrowing",
+      "string | undefined",
+      "never"
+    ],
+    "correct": 1,
+    "explanation": "if (!x) return — после return TS сужает тип, исключая falsy значения (null, undefined). x: string. Это narrow by return — паттерн без if/else блоков."
+  },
+  {
+    "id": "narrow-q4",
+    "type": "choice",
+    "question": "Что такое 'x is T' в типе возврата функции?",
+    "options": [
+      "Сравнение",
+      "Type predicate — обещание TS, что 'если функция вернула true, x имеет тип T'. Используется для кастомных type guards",
+      "Опциональное поле",
+      "Альтернатива as"
+    ],
+    "correct": 1,
+    "explanation": "function isString(x: unknown): x is string. Это говорит TS: 'после вызова в if-проверке считай x типа string'. TS ВЕРИТ функции — он не проверяет корректность. Если в логике ошибка, типы будут неверные в рантайме."
+  },
+  {
+    "id": "narrow-q5",
+    "type": "choice",
+    "question": "Что такое discriminated union?",
+    "options": [
+      "Union, где есть дискриминация",
+      "Union типов, у которых есть общее ПОЛЕ-discriminator (литеральное значение). Switch по этому полю сужает тип в каждой ветке",
+      "Union, который нельзя использовать",
+      "Только два варианта"
+    ],
+    "correct": 1,
+    "explanation": "Лучший паттерн для типов-вариантов. type Result = { type: 'ok', data: T } | { type: 'err', msg: string }. switch (r.type) → внутри каждого case TS знает точные поля. Очищает API и убирает явные касты."
+  },
+  {
+    "id": "narrow-q6",
+    "type": "input",
+    "question": "Какой тип используется в exhaustive check для проверки 'все варианты обработаны'?",
+    "answer": "never",
+    "explanation": "const _: never = x в default-ветке switch'а. TS сводит x к never, ЕСЛИ все case'ы обработаны. Если забыли — x останется как тот не обработанный тип, и присвоение в never не скомпилится. При добавлении нового варианта в union — все exhaustive switches подсветятся."
+  },
+  {
+    "id": "narrow-q7",
+    "type": "choice",
+    "question": "Что выведет TS:\n\ntype S = 'a' | 'b' | 'c';\nfunction handle(s: S) {\n  switch (s) {\n    case 'a': return 1;\n    case 'b': return 2;\n    default:\n      const x: never = s;\n      return 3;\n  }\n}",
+    "options": [
+      "Скомпилируется без проблем",
+      "Ошибка: Type 'c' is not assignable to type 'never' — потому что 'c' не обработан, exhaustive check сработал",
+      "Warning",
+      "Type S is invalid"
+    ],
+    "correct": 1,
+    "explanation": "Классический сценарий. После case 'a' и 'b' s может быть только 'c'. const x: never = s пытается присвоить 'c' в never — TS ругается. Это и есть compile-time проверка полноты. Добавь case 'c' — ошибка уйдёт."
+  },
+  {
+    "id": "narrow-q8",
+    "type": "multi",
+    "question": "Какие способы narrowing встроены в TS?",
+    "options": [
+      "typeof для примитивов",
+      "instanceof для классов",
+      "in для проверки наличия поля",
+      "Equality с литералом (=== 'value')",
+      "Truthiness (if (x))",
+      "Type predicate в самом TS"
+    ],
+    "correct": [0, 1, 2, 3, 4],
+    "explanation": "Все 5 встроены. Type predicate не встроен — он создаётся пользователем через 'x is T'. В сумме эти инструменты покрывают 99% реальных случаев narrowing без явного as."
+  },
+  {
+    "id": "narrow-q9",
+    "type": "choice",
+    "question": "Что верно про assertion functions (asserts x is T)?",
+    "options": [
+      "Это синоним type guard",
+      "Функция с 'asserts x is T' в возврате говорит TS: 'после вызова считай x типа T'. Предполагается, что функция БРОСИТ если x не подходит",
+      "Работает только в дев-режиме",
+      "Только для классов"
+    ],
+    "correct": 1,
+    "explanation": "asserts x is T — альтернатива type guard. Type guard используется в if, assertion function — без if. assertIsUser(x); x.name — TS поверил после вызова. Применение: валидация на границе системы (parsed JSON, env variables)."
+  },
+  {
+    "id": "narrow-q10",
+    "type": "choice",
+    "question": "Что не так с этим narrowing?\n\nfunction greet(name: string) {\n  if (name) {\n    console.log(name.toUpperCase());\n  }\n}",
+    "options": [
+      "Всё ок",
+      "Если name пустая строка '' — TS не подскажет проблему (пустая строка валидна как string), но if (name) её отрежет. Иногда это баг (пользователь оставил пустое имя)",
+      "name всегда null",
+      "TypeError"
+    ],
+    "correct": 1,
+    "explanation": "Truthiness narrowing отрезает все falsy, не только null/undefined. '' тоже falsy → отрезается. Если '' — валидное значение (пустая строка как опция), баг. Безопаснее: if (name !== null && name !== undefined) или if (name != null) — отрезает только null/undefined."
+  },
+  {
+    "id": "narrow-q11",
+    "type": "choice",
+    "question": "Какой паттерн ловить ошибки от разных классов в catch?",
+    "options": [
+      "if (err.constructor.name === 'FetchError') — по имени",
+      "instanceof FetchError — TS сузит err до конкретного класса, типобезопасно",
+      "JSON.stringify(err)",
+      "throw err"
+    ],
+    "correct": 1,
+    "explanation": "instanceof — стандарт для разделения собственных ошибок. catch (err: unknown) { if (err instanceof FetchError) { err.status — type-safe } else if (err instanceof ValidationError) { err.field } else throw err }. По имени класса — анти-паттерн (минификация ломает)."
+  },
+  {
+    "id": "narrow-q12",
+    "type": "choice",
+    "question": "Зачем filter с type guard?\n\nconst lessons = results.filter((l): l is LessonMeta => l !== null);",
+    "options": [
+      "Лишний синтаксис",
+      "Чтобы TS правильно сузил тип результата с (LessonMeta | null)[] до LessonMeta[]. Без type guard'а filter оставил бы тот же тип",
+      "Для производительности",
+      "Для immutability"
+    ],
+    "correct": 1,
+    "explanation": "По умолчанию filter возвращает тот же тип массива. Чтобы TS понял, что null отфильтрован, нужен type guard в predicate. (l): l is LessonMeta — TS понимает: после filter получим LessonMeta[]. Без него — (LessonMeta | null)[] и пришлось бы кастить."
+  },
+  {
+    "id": "narrow-q13",
+    "type": "choice",
+    "question": "Когда полезен 'in' narrowing?",
+    "options": [
+      "Никогда",
+      "Когда у union нет общего discriminator-поля, но у вариантов есть РАЗНЫЕ поля: type Dog = {bark}, type Cat = {meow}, if ('bark' in animal) — animal: Dog",
+      "Только для классов",
+      "Только в Node.js"
+    ],
+    "correct": 1,
+    "explanation": "'in' проверяет наличие свойства. Подходит для union'а из объектов БЕЗ discriminator-поля (то есть структурно разных). С discriminator'ом лучше switch по полю — он эксплицитнее."
+  },
+  {
+    "id": "narrow-q14",
+    "type": "choice",
+    "question": "В чём опасность кастомного type guard?",
+    "options": [
+      "Тормозит компиляцию",
+      "TS ВЕРИТ предикату — не проверяет корректность. Можно соврать (return true всегда) и получить unsafe-типизацию в рантайме",
+      "Не поддерживает дженерики",
+      "Невозможно использовать в filter"
+    ],
+    "correct": 1,
+    "explanation": "Type predicate — обещание разработчика. TS не валидирует логику. function isString(x): x is string { return true } — TS поверит, везде будет string, в рантайме катастрофа. Type guard'ы — острый инструмент, ответственность на тебе."
+  },
+  {
+    "id": "narrow-q15",
+    "type": "multi",
+    "question": "Что верно про discriminated union на основе нашего apiRequest?\n\ntype Result<T> = { ok: true; data: T } | { ok: false; error: string }",
+    "options": [
+      "ok — это discriminator",
+      "После if (result.ok) — TS знает что доступно .data",
+      "После else — TS знает что доступно .error",
+      "Если забыть проверить .ok — TS подскажет ошибку",
+      "Это самый чистый паттерн для async-результатов с ошибками"
+    ],
+    "correct": [0, 1, 2, 3, 4],
+    "explanation": "Все верны. ok разделяет варианты, narrowing работает в обе стороны (if-then, else). Без проверки .ok доступ к result.data или result.error — ошибка типов. Этот паттерн (Result/Either) пришёл из FP и в TS работает идеально через discriminated union."
+  }
+]

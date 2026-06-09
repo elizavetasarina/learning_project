@@ -1,0 +1,188 @@
+[
+  {
+    "id": "memo-q1",
+    "type": "choice",
+    "question": "Что главное даёт useCallback?",
+    "options": [
+      "Делает функцию быстрее",
+      "Стабильную ссылку на функцию между рендерами (пока deps те же)",
+      "Кеширует результат вызова функции",
+      "Запускает функцию реже"
+    ],
+    "correct": 1,
+    "explanation": "useCallback не влияет на скорость функции и не меняет частоту её вызова. Он сохраняет одну и ту же ссылку на функцию между рендерами, пока deps не изменились. Это важно для React.memo (сравнение пропсов по ссылке) и deps других хуков."
+  },
+  {
+    "id": "memo-q2",
+    "type": "choice",
+    "question": "useCallback(fn, deps) эквивалентен:",
+    "options": [
+      "useMemo(fn, deps)",
+      "useMemo(() => fn, deps)",
+      "useEffect(fn, deps)",
+      "useRef(fn)"
+    ],
+    "correct": 1,
+    "explanation": "useCallback — синтаксический сахар над useMemo. Возвращает функцию вместо результата её вызова. useCallback(fn, deps) ≡ useMemo(() => fn, deps). Поэтому если знаешь useMemo — useCallback тривиален."
+  },
+  {
+    "id": "memo-q3",
+    "type": "multi",
+    "question": "Когда useMemo действительно нужен?",
+    "options": [
+      "Дорогое вычисление (сортировка большого массива, парсинг)",
+      "Значение передаётся в React.memo-компонент (нужна стабильная ссылка)",
+      "Значение в deps другого хука (useEffect / useMemo)",
+      "Любая арифметика a + b",
+      "Чтобы компонент рендерился быстрее"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "Три валидных кейса. Остальное — переоптимизация. useMemo не делает компонент быстрее — сам компонент рендерится в любом случае. Простая арифметика дешевле, чем сам хук."
+  },
+  {
+    "id": "memo-q4",
+    "type": "choice",
+    "question": "В чём проблема:\n\nfunction Form() {\n  const handleSubmit = useCallback(() => submit(), []);\n  return <button onClick={handleSubmit}>Send</button>;\n}",
+    "options": [
+      "Нет проблемы, это оптимизация",
+      "useCallback тут не нужен: <button> — обычный HTML, ему всё равно изменилась ли ссылка. Это лишняя работа на каждом рендере",
+      "deps массив пустой — это баг",
+      "Нужно ещё useMemo"
+    ],
+    "correct": 1,
+    "explanation": "useCallback оправдан, когда функция передаётся в memo-компонент или в deps другого хука. <button> — обычный HTML, ему всё равно. useCallback тут — шум: каждый рендер сравнивает deps, хранит замыкание. Дороже, чем просто let handleSubmit = () => ...."
+  },
+  {
+    "id": "memo-q5",
+    "type": "choice",
+    "question": "Что произойдёт:\n\nconst MemoChild = React.memo(Child);\nfunction Parent() {\n  const data = { id: 1 };  // новый объект каждый рендер\n  return <MemoChild data={data} />;\n}",
+    "options": [
+      "MemoChild не рендерится повторно — React.memo защищает",
+      "MemoChild ре-рендерится при каждом рендере Parent: data — новый объект, ссылка разная, memo считает что пропс изменился",
+      "Бесконечный цикл",
+      "TypeScript ошибка"
+    ],
+    "correct": 1,
+    "explanation": "Главная ловушка memo. React.memo сравнивает пропсы через Object.is (по умолчанию). { id: 1 } — новый объект каждый раз → разная ссылка → memo бесполезен. Фикс: const data = useMemo(() => ({ id: 1 }), [])."
+  },
+  {
+    "id": "memo-q6",
+    "type": "input",
+    "question": "Какой хук решает проблему ре-рендера потребителей контекста при пересоздании value-объекта?",
+    "answer": "useMemo",
+    "explanation": "Классический случай. <Ctx.Provider value={{ user, theme }}> — новый объект каждый рендер → все useContext(Ctx)-потребители ре-рендерятся, даже если ничего не изменилось. Фикс: const value = useMemo(() => ({ user, theme }), [user, theme])."
+  },
+  {
+    "id": "memo-q7",
+    "type": "choice",
+    "question": "Что выведет:\n\nconst handler = useCallback(() => {\n  console.log(value);\n}, []);\n\n(value меняется со временем)",
+    "options": [
+      "Текущее значение value на каждом вызове",
+      "Значение value из ПЕРВОГО рендера навсегда (stale closure: deps пустой, замыкание не обновляется)",
+      "Ошибку",
+      "undefined"
+    ],
+    "correct": 1,
+    "explanation": "Stale closure. Пустой deps массив → useCallback возвращает ту же функцию навсегда → она замкнута на value первого рендера. Каждый клик логгирует начальное value, не актуальное. ESLint правило react-hooks/exhaustive-deps это ловит."
+  },
+  {
+    "id": "memo-q8",
+    "type": "multi",
+    "question": "Что делает useMemo HE дешёвым?",
+    "options": [
+      "Берёт слот в memoizedState Fiber'а (~50 байт)",
+      "Сравнивает каждое значение в deps через Object.is",
+      "Хранит замыкание над предыдущим результатом",
+      "Останавливает рендер компонента",
+      "Делает component re-mount"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "useMemo не бесплатный. Память + сравнение deps + замыкание над результатом. Для простой арифметики это дороже, чем посчитать заново. Останавливать рендер или ре-маунтить компонент он НЕ делает — это другие механизмы (React.memo, key)."
+  },
+  {
+    "id": "memo-q9",
+    "type": "choice",
+    "question": "Что лучше:\n\nconst sum = useMemo(() => a + b, [a, b]);\nvs\nconst sum = a + b;",
+    "options": [
+      "Первый — оптимизация",
+      "Второй — useMemo для простой арифметики дороже, чем сам пересчёт",
+      "Одно и то же",
+      "Зависит от типа a и b"
+    ],
+    "correct": 1,
+    "explanation": "a + b занимает доли наносекунды. useMemo — десятки наносекунд (сравнение deps + lookup). Чистый минус. useMemo оправдан для тяжёлых вычислений (sort большого массива, parsing, recursive walk)."
+  },
+  {
+    "id": "memo-q10",
+    "type": "choice",
+    "question": "Какая проблема:\n\nconst config = { url, timeout: 5000 };\nuseEffect(() => {\n  fetch(config);\n}, [config]);",
+    "options": [
+      "Нет проблемы",
+      "config — новый объект каждый рендер → useEffect видит 'изменение' каждый раз → fetch улетает на каждый рендер (потенциально бесконечный цикл)",
+      "Нужен useCallback",
+      "config должен быть в useState"
+    ],
+    "correct": 1,
+    "explanation": "Классический баг. Объект-литерал в render-функции пересоздаётся каждый раз. useEffect видит новую ссылку — запускает эффект. Если эффект меняет state → новый рендер → новый config → новый эффект. Фикс: const config = useMemo(() => ({...}), [url])."
+  },
+  {
+    "id": "memo-q11",
+    "type": "input",
+    "question": "Какое правило ESLint предупреждает о пропущенных переменных в deps массиве?",
+    "answer": "react-hooks/exhaustive-deps",
+    "explanation": "react-hooks/exhaustive-deps. Это spasenie от stale closure: оно ругается, если используемая внутри useEffect/useCallback/useMemo переменная не указана в deps. Отключать без причины — путь к багам. Часто фикс: добавь переменную в deps или используй функциональный setState/ref."
+  },
+  {
+    "id": "memo-q12",
+    "type": "choice",
+    "question": "Что такое React Compiler (React 19+)?",
+    "options": [
+      "Альтернатива Babel",
+      "Автоматический добавляет мемоизацию там, где она нужна — потенциально убирает нужду в ручных useMemo/useCallback в новом коде",
+      "Новый JSX-парсер",
+      "Инструмент для перевода Class → Function компонентов"
+    ],
+    "correct": 1,
+    "explanation": "React Compiler анализирует код, находит зависимости и сам вставляет мемоизацию. Идея: писать обычный код, оптимизации делает компилятор. На середину 2025 — экспериментально. Знать на собесе полезно: показывает, что следишь за развитием React."
+  },
+  {
+    "id": "memo-q13",
+    "type": "choice",
+    "question": "useCallback нужен, если функция передаётся:",
+    "options": [
+      "Любому child-компоненту — всегда оптимизация",
+      "Только в React.memo-обёрнутый компонент или в deps другого хука",
+      "Только в useEffect",
+      "Никогда не нужен"
+    ],
+    "correct": 1,
+    "explanation": "useCallback стабилизирует ссылку. Это нужно только когда ссылка СРАВНИВАЕТСЯ: React.memo сравнивает пропсы, deps хуков сравниваются через Object.is. Для обычного <button onClick={fn}> ссылка не важна → useCallback бесполезен."
+  },
+  {
+    "id": "memo-q14",
+    "type": "choice",
+    "question": "useMemo с пустым deps массивом — что это?",
+    "options": [
+      "Антипаттерн — будет stale value",
+      "Эквивалент useRef(value).current — value вычислится один раз и зафиксируется на mount",
+      "Бесконечный цикл",
+      "React выбросит warning"
+    ],
+    "correct": 1,
+    "explanation": "useMemo(() => expensiveInit(), []) — lazy initialization, как useState(() => init()). Полезно, когда инициализация дорогая. Альтернатива — useRef + useEffect для assigning. На самом деле для immutable значений useRef проще."
+  },
+  {
+    "id": "memo-q15",
+    "type": "multi",
+    "question": "Что является признаком ХОРОШЕГО использования useMemo/useCallback?",
+    "options": [
+      "Профайлер показал > 1ms на вычисление",
+      "Значение передаётся в React.memo с тяжёлым рендером",
+      "Функция в deps useEffect, который иначе бесконечно перезапускается",
+      "Просто чтобы код 'выглядел оптимизированным'",
+      "Каждая функция в компоненте"
+    ],
+    "correct": [0, 1, 2],
+    "explanation": "Первые три — обоснованные. Каждая функция в каждом компоненте — антипаттерн (шум + проседание перформанса от самой мемоизации). 'Выглядеть оптимизированным' — карго-культ, ESLint правила и code review должны это ловить."
+  }
+]
