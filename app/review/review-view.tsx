@@ -90,13 +90,16 @@ export function ReviewView() {
     }
     return true;
   }
+  // Для choice без showResult MainButton не нужна — тап по варианту запускает проверку
+  const isChoiceWithoutResult =
+    !!current && current.question.type === "choice" && !showResult;
   useTelegramMainButton({
     text: !showResult
       ? "Проверить"
       : isLast
         ? "Завершить"
         : "Следующий",
-    isVisible: showMainBtn,
+    isVisible: showMainBtn && !isChoiceWithoutResult,
     isActive: showResult || hasCurrentAnswer(),
     onClick: () => {
       if (!showResult) handleCheck();
@@ -118,6 +121,20 @@ export function ReviewView() {
     if (!current) return;
     // Тактильный отклик: успех или ошибка по результату ответа
     const correct = isAnswerCorrect(current.question, currentAnswer);
+    if (correct) haptic.success();
+    else haptic.error();
+    setShowResult(true);
+  }
+
+  /**
+   * Для choice: тап по варианту = выбор + сразу проверка.
+   * Для multi/input — оставляем явное «Проверить».
+   */
+  function handleChoiceTap(index: number) {
+    if (showResult) return;
+    if (!current || current.question.type !== "choice") return;
+    setCurrentAnswer(index);
+    const correct = isAnswerCorrect(current.question, index);
     if (correct) haptic.success();
     else haptic.error();
     setShowResult(true);
@@ -289,7 +306,7 @@ export function ReviewView() {
                   key={i}
                   type="button"
                   disabled={showResult}
-                  onClick={() => setCurrentAnswer(i)}
+                  onClick={() => handleChoiceTap(i)}
                   className={`flex items-center gap-3 rounded-xl border p-4 text-left text-[14px] leading-snug transition-all active:scale-[0.98] ${style}`}
                 >
                   <span className="flex-1">{option}</span>
@@ -388,7 +405,7 @@ export function ReviewView() {
         )}
 
         {/* Кнопка снизу — fallback для клиентов без MainButton (dev) */}
-        {!hasMainButton && (
+        {!hasMainButton && !isChoiceWithoutResult && (
         <div className="mt-auto pt-6">
           {!showResult ? (
             <button

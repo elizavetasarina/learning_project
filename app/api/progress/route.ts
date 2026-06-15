@@ -35,6 +35,12 @@ export async function GET(request: Request) {
       },
     });
 
+    // Ранг: сколько юзеров обогнали нас по totalXp + 1
+    const rank =
+      (await prisma.user.count({
+        where: { totalXp: { gt: auth.user.totalXp } },
+      })) + 1;
+
     return NextResponse.json({
       progress,
       // Данные юзера: стрик, XP — для главной и прогресса
@@ -44,6 +50,7 @@ export async function GET(request: Request) {
         totalXp: auth.user.totalXp,
         dailyXp: auth.user.dailyXp,
         dailyGoal: auth.user.dailyGoal,
+        rank,
       },
     });
   } catch (error) {

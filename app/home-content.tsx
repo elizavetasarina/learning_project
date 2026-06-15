@@ -118,25 +118,36 @@ export function HomeContent({ lessons }: HomeContentProps) {
         </Link>
       )}
 
-      {/* Мини-статистика */}
+      {/* Мини-статистика — каждая карточка ведёт в свой раздел */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="flex flex-col items-center gap-1 rounded-xl bg-secondary-bg p-4">
+        <Link
+          href="/lessons"
+          className="flex flex-col items-center gap-1 rounded-xl bg-secondary-bg p-4 transition-all active:scale-[0.97]"
+        >
           <BookOpen size={20} className="text-accent" />
           <span className="text-lg font-bold">
             {completedCount}/{lessons.length}
           </span>
           <span className="text-xs text-hint">Уроков</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 rounded-xl bg-secondary-bg p-4">
+        </Link>
+        <Link
+          href="/progress"
+          className="flex flex-col items-center gap-1 rounded-xl bg-secondary-bg p-4 transition-all active:scale-[0.97]"
+        >
           <Flame size={20} className="text-warning" />
           <span className="text-lg font-bold">{streak.current}</span>
           <span className="text-xs text-hint">Стрик</span>
-        </div>
-        <div className="flex flex-col items-center gap-1 rounded-xl bg-secondary-bg p-4">
+        </Link>
+        <Link
+          href="/progress"
+          className="flex flex-col items-center gap-1 rounded-xl bg-secondary-bg p-4 transition-all active:scale-[0.97]"
+        >
           <Trophy size={20} className="text-accent-light" />
-          <span className="text-lg font-bold">{streak.best}</span>
-          <span className="text-xs text-hint">Лучший</span>
-        </div>
+          <span className="text-lg font-bold">
+            {userData ? `#${userData.rank}` : "—"}
+          </span>
+          <span className="text-xs text-hint">Место</span>
+        </Link>
       </div>
 
     </main>

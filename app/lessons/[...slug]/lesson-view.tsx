@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Eye } from "lucide-react";
+import { ChevronLeft, Eye, HelpCircle, ChevronRight } from "lucide-react";
 import { LessonContent } from "./lesson-content";
 import { QuizView } from "./quiz-view";
 import { useQuizStore } from "@/store/quiz";
@@ -193,6 +193,25 @@ export function LessonView({
       {activeTab === "theory" ? (
         <div className="flex flex-col gap-6 px-4 pb-6 pt-4">
           <LessonContent content={content} />
+
+          {/* CTA в конце теории — переключение на тест без поиска вкладки сверху */}
+          {hasQuiz && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("quiz")}
+              className="mt-2 flex items-center gap-4 rounded-xl bg-accent p-5 text-left text-accent-text transition-opacity active:opacity-90"
+            >
+              <HelpCircle size={24} />
+              <div className="flex-1">
+                <p className="text-sm opacity-80">Готов проверить себя?</p>
+                <p className="font-semibold">
+                  Пройти тест по теме · {questions.length}{" "}
+                  {pluralize(questions.length, "вопрос", "вопроса", "вопросов")}
+                </p>
+              </div>
+              <ChevronRight size={20} />
+            </button>
+          )}
         </div>
       ) : (
         <QuizView questions={questions} lessonTitle={title} slug={slug} />

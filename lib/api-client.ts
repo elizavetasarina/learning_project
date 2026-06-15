@@ -97,6 +97,7 @@ export interface UserData {
   totalXp: number;
   dailyXp: number;
   dailyGoal: number;
+  rank: number;
 }
 
 /** Ответ GET /api/progress */

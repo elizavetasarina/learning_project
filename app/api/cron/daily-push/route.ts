@@ -49,6 +49,9 @@ export async function GET(request: Request) {
       dailyGoal: true,
       lastActivityAt: true,
       timezone: true,
+      // Нужен в pickNotification: проверяем, относится ли dailyXp к сегодня.
+      // Без этого юзер с устаревшим dailyXp получает неверный finish-goal пуш.
+      dailyXpDate: true,
     },
   });
 

@@ -88,6 +88,25 @@ export function QuizView({ questions, slug }: QuizViewProps) {
     check(correct);
   }
 
+  /**
+   * Для choice-вопросов: тап по варианту = выбор + сразу проверка.
+   * Не ждём кнопку «Проверить» — один тап даёт результат и пояснение.
+   * Это нативное мобильное поведение для quiz-приложений (Duolingo и др.).
+   *
+   * Для multi/input оставляем явное подтверждение, потому что:
+   *   - multi нужен набор кликов до финального ответа
+   *   - input нужно дописать строку
+   */
+  function handleChoiceTap(index: number) {
+    if (showResult) return; // защита от повторного клика после проверки
+    if (!question || question.type !== "choice") return;
+    setAnswer(question.id, index);
+    const correct = isAnswerCorrect(question, index);
+    if (correct) haptic.success();
+    else haptic.error();
+    check(correct);
+  }
+
   async function handleNext() {
     if (isLast) {
       // Считаем процент и сохраняем через progress store.
@@ -117,18 +136,18 @@ export function QuizView({ questions, slug }: QuizViewProps) {
   const isCorrect = showResult ? checkIsCorrect() : null;
 
   // ─── Нативная Telegram MainButton ─────────────────────────
-  // Показываем нативную кнопку, когда мы на экране вопроса (не на итоговом).
-  // Текст и поведение зависят от фазы:
-  //   - до проверки: «Проверить» (active если есть ответ)
-  //   - после проверки: «Следующий вопрос» или «Завершить тест»
-  // На итоговом экране (isFinished) — прячем, там свои кнопки Retry/Home.
+  // Скрываем кнопку «Проверить» для choice-вопросов: там тап по варианту
+  // сам запускает проверку. Для multi/input — оставляем явное подтверждение.
+  // После проверки кнопка показывает «Следующий» / «Завершить» как раньше.
+  const isChoiceWithoutResult =
+    !!question && question.type === "choice" && !showResult;
   useTelegramMainButton({
     text: !showResult
       ? "Проверить"
       : isLast
         ? "Завершить тест"
         : "Следующий вопрос",
-    isVisible: !isFinished && !!question,
+    isVisible: !isFinished && !!question && !isChoiceWithoutResult,
     isActive: showResult || hasAnswer(),
     isProgressVisible: isSaving,
     onClick: () => {
@@ -249,7 +268,7 @@ export function QuizView({ questions, slug }: QuizViewProps) {
                 key={index}
                 type="button"
                 disabled={showResult}
-                onClick={() => setAnswer(question.id, index)}
+                onClick={() => handleChoiceTap(index)}
                 className={`flex items-center gap-3 rounded-xl border p-4 text-left text-[14px] leading-snug transition-all active:scale-[0.98] ${style}`}
               >
                 <span className="flex-1">{option}</span>
@@ -369,7 +388,7 @@ export function QuizView({ questions, slug }: QuizViewProps) {
           <p className="mt-0.5 break-all">{saveError}</p>
         </div>
       )}
-      {!hasMainButton && (
+      {!hasMainButton && !isChoiceWithoutResult && (
         <div className={saveError ? "pt-3" : "mt-auto pt-6"}>
           {!showResult ? (
             <button

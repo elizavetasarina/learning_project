@@ -18,6 +18,13 @@ export interface NotificationUser {
   lastActivityAt: Date | null;
   /** IANA-таймзона юзера ("Europe/Moscow"). null = считаем по UTC */
   timezone: string | null;
+  /**
+   * К какому локальному дню относится dailyXp. Важно: dailyXp сбрасывается
+   * только при заходе юзера (lazy reset в authenticateRequest). Если юзер
+   * не заходил сегодня — dailyXp всё ещё со вчерашним значением. Cron не
+   * выполняет lazy reset, поэтому здесь мы сами проверяем «свежесть».
+   */
+  dailyXpDate: Date | null;
 }
 
 /** Результат выбора: текст и текст кнопки. URL добавляется в cron */
@@ -67,10 +74,24 @@ export function pickNotification(
   // Cutoff: давно отвалившихся не пушим, чтобы не быть спамом
   if (daysSinceLastActivity > STALE_THRESHOLD_DAYS) return null;
 
+  // Эффективный dailyXp: если поле относится не к сегодняшнему локальному
+  // дню юзера, считаем что прогресса за сегодня нет. Это закрывает баг:
+  // юзер набрал 130 XP вчера и не заходил сегодня → БД хранит dailyXp=130,
+  // но для логики уведомлений сегодня = 0 (стрик под угрозой / comeback).
+  const dailyXpIsFresh =
+    user.dailyXpDate !== null &&
+    daysBetweenInTz(user.dailyXpDate, now, user.timezone) === 0;
+  const effectiveDailyXp = dailyXpIsFresh ? user.dailyXp : 0;
+
+  // Стрик жив только если юзер был активен вчера или сегодня.
+  // Если прошло 2+ дня — стрик уже сломан, даже если в БД currentStreak > 0
+  // (lazy reset срабатывает только при входе в приложение).
+  const streakIsAlive = daysSinceLastActivity <= 1;
+
   // ─── Приоритет 1: стрик под угрозой ─────────────────────
-  // Юзер набрал стрик, но сегодня ещё ничего не сделал.
-  // Самый ценный момент для нотификации — он потеряет привычку.
-  if (user.currentStreak > 0 && user.dailyXp === 0) {
+  // Юзер был активен вчера (стрик жив), но сегодня ещё ничего не сделал.
+  // Порог 3: стрик 1-2 дня не жалко потерять, уведомление не мотивирует.
+  if (user.currentStreak >= 3 && streakIsAlive && effectiveDailyXp === 0) {
     const streakWord =
       user.currentStreak === 1 ? "день" :
       user.currentStreak < 5 ? "дня" : "дней";
@@ -84,11 +105,9 @@ export function pickNotification(
   }
 
   // ─── Приоритет 2: возврат отвалившегося ────────────────
-  // Активность 2-14 дней назад, стрик уже сбросился — мягко возвращаем.
-  if (
-    user.currentStreak === 0 &&
-    daysSinceLastActivity >= COMEBACK_THRESHOLD_DAYS
-  ) {
+  // Прошло 2+ дня — стрик точно сломан (не проверяем currentStreak из БД,
+  // он мог не обновиться из-за lazy reset).
+  if (daysSinceLastActivity >= COMEBACK_THRESHOLD_DAYS) {
     return {
       trigger: "comeback",
       text:
@@ -99,13 +118,13 @@ export function pickNotification(
   }
 
   // ─── Приоритет 3: добей дневную цель ───────────────────
-  // Юзер зашёл сегодня (dailyXp > 0), но цель не закрыта.
-  if (user.dailyXp > 0 && user.dailyXp < user.dailyGoal) {
-    const left = user.dailyGoal - user.dailyXp;
+  // Юзер зашёл сегодня (effectiveDailyXp > 0), но цель не закрыта.
+  if (effectiveDailyXp > 0 && effectiveDailyXp < user.dailyGoal) {
+    const left = user.dailyGoal - effectiveDailyXp;
     return {
       trigger: "finish-goal",
       text:
-        `Сегодня у тебя <b>${user.dailyXp} XP</b> из ${user.dailyGoal}.\n\n` +
+        `Сегодня у тебя <b>${effectiveDailyXp} XP</b> из ${user.dailyGoal}.\n\n` +
         `Осталось ${left} XP — пройди ещё один тест и закрой день.`,
       buttonText: "Доделать",
     };
