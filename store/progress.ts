@@ -3,10 +3,14 @@ import {
   fetchProgress,
   saveProgress,
   fetchDueReviews,
+  fetchLeaderboard,
+  fetchAchievements,
   updateDailyGoal,
   type LessonProgressData,
   type QuestionAnswer,
   type UserData,
+  type LeaderboardEntry,
+  type AchievementData,
 } from "@/lib/api-client";
 
 /**
@@ -22,6 +26,11 @@ import {
 
 // ─── Типы ───────────────────────────────────────────────────
 
+interface LeaderboardData {
+  top: LeaderboardEntry[];
+  me: { rank: number; firstName: string; username: string | null; totalXp: number } | null;
+}
+
 interface ProgressState {
   /** Map: lessonSlug → прогресс. null = ещё не загружали */
   progressMap: Map<string, LessonProgressData> | null;
@@ -31,15 +40,23 @@ interface ProgressState {
   lastXpEarned: number;
   /** Сколько вопросов сейчас к повтору (для карточки на главной) */
   dueCount: number;
-  /** Идёт ли загрузка */
+  /** Идёт ли загрузка основных данных */
   isLoading: boolean;
   /** Была ли ошибка */
   error: string | null;
+  /** Таблица лидеров. null = ещё не загружали */
+  leaderboard: LeaderboardData | null;
+  /** Ачивки. null = ещё не загружали */
+  achievements: AchievementData[] | null;
+  /** Идёт ли загрузка лидерборда/ачивок */
+  isLoadingExtras: boolean;
 }
 
 interface ProgressActions {
   /** Загрузить прогресс из API (вызывается один раз при старте) */
   load: () => Promise<void>;
+  /** Загрузить лидерборд + ачивки (только на странице /progress) */
+  loadExtras: () => Promise<void>;
   /**
    * Сохранить результат квиза и обновить локальный state.
    * answers — массив { questionId, isCorrect } для обновления SR-расписания.
@@ -71,6 +88,9 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
     dueCount: 0,
     isLoading: false,
     error: null,
+    leaderboard: null,
+    achievements: null,
+    isLoadingExtras: false,
 
     // Загрузка прогресса + due-counts параллельно из API.
     // Promise.all: оба запроса уходят одновременно, общий wall-time = max,
@@ -141,6 +161,24 @@ export const useProgressStore = create<ProgressState & ProgressActions>(
       }
 
       return result.error; // текст ошибки от сервера
+    },
+
+    loadExtras: async () => {
+      // Если уже загружено или грузится — пропускаем
+      if (get().leaderboard !== null || get().isLoadingExtras) return;
+
+      set({ isLoadingExtras: true });
+
+      const [leaderboardResult, achievementsResult] = await Promise.all([
+        fetchLeaderboard(),
+        fetchAchievements(),
+      ]);
+
+      set({
+        leaderboard: leaderboardResult.ok ? leaderboardResult.data : null,
+        achievements: achievementsResult.ok ? achievementsResult.data.achievements : null,
+        isLoadingExtras: false,
+      });
     },
 
     decrementDue: () => {

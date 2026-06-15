@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextSRState, INITIAL_STATE } from "@/lib/sr";
+import { checkAndAward } from "@/lib/achievements";
 
 // Запрещаем Next.js пре-рендерить этот роут при билде.
 // Без этого Next.js пытается выполнить код при сборке,
@@ -283,6 +284,12 @@ export async function POST(request: Request) {
       );
     }
 
+    // Проверяем и выдаём новые ачивки после сохранения результата.
+    // fire-and-forget: если упадёт — не ломаем ответ клиенту.
+    const newAchievements = await checkAndAward(auth.user.id, prisma).catch(
+      (e) => { console.error("[achievements] checkAndAward failed:", e); return []; }
+    );
+
     return NextResponse.json({
       progress: {
         lessonSlug: progress.lesson_slug,
@@ -292,6 +299,7 @@ export async function POST(request: Request) {
       },
       xpEarned,
       srUpdated,
+      newAchievements,
     });
   } catch (error) {
     // Лог идёт в Vercel logs — там и смотреть детали, если что-то упадёт.

@@ -120,6 +120,32 @@ interface SaveProgressResponse {
   srUpdated?: number;
 }
 
+/** Одна ачивка из GET /api/achievements */
+export interface AchievementData {
+  id: string;
+  emoji: string;
+  title: string;
+  description: string;
+  unlocked: boolean;
+  unlockedAt: string | null;
+}
+
+/** Один участник в таблице лидеров */
+export interface LeaderboardEntry {
+  rank: number;
+  firstName: string;
+  username: string | null;
+  totalXp: number;
+  isMe: boolean;
+}
+
+/** Ответ GET /api/leaderboard */
+interface LeaderboardResponse {
+  top: LeaderboardEntry[];
+  /** null если текущий юзер уже есть в top */
+  me: { rank: number; firstName: string; username: string | null; totalXp: number } | null;
+}
+
 /** Один ответ юзера в тесте для обновления SR */
 export interface QuestionAnswer {
   questionId: string;
@@ -220,6 +246,16 @@ export function answerReview(
     method: "POST",
     body: JSON.stringify({ lessonSlug, questionId, isCorrect }),
   });
+}
+
+/** Все ачивки с флагом unlocked */
+export function fetchAchievements() {
+  return apiRequest<{ achievements: AchievementData[] }>("/api/achievements");
+}
+
+/** Таблица лидеров — топ-20 + позиция текущего юзера */
+export function fetchLeaderboard() {
+  return apiRequest<LeaderboardResponse>("/api/leaderboard");
 }
 
 /**

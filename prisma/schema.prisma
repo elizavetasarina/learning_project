@@ -32,9 +32,11 @@ model User {
   lastActivityAt DateTime? @map("last_activity_at")
 
   // Связь один-ко-многим: у юзера много записей прогресса
-  lessonProgress LessonProgress[]
+  lessonProgress  LessonProgress[]
   // Расписание повторений (spaced repetition по SM-2)
-  reviewSchedule ReviewSchedule[]
+  reviewSchedule  ReviewSchedule[]
+  // Полученные ачивки
+  achievements    UserAchievement[]
 
   @@map("users")
 }
@@ -68,6 +70,22 @@ model LessonProgress {
 enum LessonStatus {
   STARTED
   COMPLETED
+}
+
+// ─── Ачивки пользователя ────────────────────────────────────
+// Одна запись = факт получения ачивки (userId + achievementId).
+// Сами определения ачивок — в коде (lib/achievements.ts), не в БД.
+// Это позволяет добавлять новые ачивки без миграций.
+model UserAchievement {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  achievementId String   @map("achievement_id")
+  unlockedAt    DateTime @default(now()) @map("unlocked_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, achievementId])
+  @@map("user_achievements")
 }
 
 // ─── Расписание повторений (spaced repetition) ─────────────
