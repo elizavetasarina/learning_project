@@ -42,7 +42,11 @@ export function HomeContent({ lessons }: HomeContentProps) {
     goalReachedBefore.current = reached;
   }, [userData]);
 
-  if (!isReady) return null;
+  const isLoading = !isReady || userData === null;
+
+  if (isLoading) {
+    return <HomeSkeleton />;
+  }
 
   const displayName = user?.first_name ?? "Гость";
 
@@ -337,5 +341,61 @@ function XpCard({ totalXp }: { totalXp: number }) {
         />
       </div>
     </div>
+  );
+}
+
+// ─── Скелетон загрузки главной ──────────────────────────────
+// Повторяет форму реального контента, чтобы не было прыжков при появлении данных.
+
+function HomeSkeleton() {
+  return (
+    <main className="flex flex-1 flex-col gap-6 px-4 pb-24 pt-6">
+      {/* Приветствие */}
+      <div className="flex flex-col gap-2">
+        <div className="h-3.5 w-32 animate-pulse rounded-full bg-secondary-bg" />
+        <div className="h-8 w-48 animate-pulse rounded-full bg-secondary-bg" />
+      </div>
+
+      {/* WeekStreak */}
+      <div className="rounded-xl bg-secondary-bg p-4">
+        <div className="mb-3 h-4 w-28 animate-pulse rounded-full bg-foreground/10" />
+        <div className="flex justify-between">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <div className="h-3 w-5 animate-pulse rounded-full bg-foreground/10" />
+              <div className="h-8 w-8 animate-pulse rounded-full bg-foreground/10" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* XP карточка */}
+      <div className="rounded-xl bg-secondary-bg p-4">
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-24 animate-pulse rounded-full bg-foreground/10" />
+          <div className="h-3.5 w-20 animate-pulse rounded-full bg-foreground/10" />
+        </div>
+        <div className="mt-3 h-1.5 rounded-full bg-foreground/10" />
+      </div>
+
+      {/* Дневная цель */}
+      <div className="rounded-xl bg-secondary-bg p-4">
+        <div className="flex items-center justify-between">
+          <div className="h-4 w-32 animate-pulse rounded-full bg-foreground/10" />
+          <div className="h-3.5 w-16 animate-pulse rounded-full bg-foreground/10" />
+        </div>
+        <div className="mt-3 h-1.5 rounded-full bg-foreground/10" />
+      </div>
+
+      {/* Кнопка "Продолжить" */}
+      <div className="h-[72px] animate-pulse rounded-xl bg-secondary-bg" />
+
+      {/* Статистика */}
+      <div className="grid grid-cols-3 gap-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-20 animate-pulse rounded-xl bg-secondary-bg" />
+        ))}
+      </div>
+    </main>
   );
 }
