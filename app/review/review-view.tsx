@@ -194,10 +194,9 @@ export function ReviewView() {
         <div className="flex h-20 w-20 items-center justify-center rounded-full bg-success/10">
           <CheckCircle size={40} className="text-success" />
         </div>
-        <h1 className="text-[22px] font-bold">Всё повторено!</h1>
+        <h1 className="text-[22px] font-bold">Нет вопросов к повторению</h1>
         <p className="text-[14px] text-hint">
-          На сегодня вопросов для повтора нет.
-          <br />Проходи новые уроки — они подтянутся завтра.
+          Проходи новые уроки — вопросы появятся здесь через несколько дней.
         </p>
         <Link
           href="/"
